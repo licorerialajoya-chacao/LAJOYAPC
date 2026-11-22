@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Licorería La Joya - Panel PC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- LOGIN TRABAJADOR -->
+  <div id="loginScreen" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl">
+      <img src="https://i.ibb.co/gLJsFsnX/logojoya.png" alt="La Joya" class="w-24 h-24 mx-auto bg-white rounded-2xl p-2 mb-4 object-contain" />
+      <h1 class="text-2xl font-bold text-amber-400">Licorería La Joya</h1>
+      <p class="text-slate-400 text-sm mt-1 mb-6">¿Quién está en turno?</p>
+      <input id="inputTrabajador" type="text" placeholder="Escribe tu nombre" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-400 mb-3" />
+      <div id="listaTrabajadores" class="flex flex-wrap gap-2 justify-center mb-4"></div>
+      <button onclick="iniciarTurno()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-3 rounded-xl transition">Entrar al sistema</button>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <img src="https://i.ibb.co/gLJsFsnX/logojoya.png" class="w-10 h-10 bg-white rounded-lg p-1 object-contain" />
+        <div>
+          <h1 class="font-bold text-amber-400 leading-tight text-lg">Licorería La Joya</h1>
+          <div class="text-xs text-slate-400 flex items-center gap-2">
+            <span>Turno: <strong id="lblTrabajador" class="text-white"></strong></span>
+            <span>•</span>
+            <span>Tasa BCV: <strong id="lblTasa" class="text-emerald-400">0.00 Bs</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400" title="Sincronizado en vivo"></span>
+        <button onclick="abrirModalNuevaMesa()" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-3 py-2 rounded-lg text-sm">+ Nueva Mesa</button>
+        <button onclick="abrirHistorial()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-3 py-2 rounded-lg text-sm">Historial</button>
+        <button onclick="abrirAdmin()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 px-3 py-2 rounded-lg text-sm font-semibold">Admin</button>
+        <button onclick="cambiarTurno()" class="text-slate-400 hover:text-white text-xs px-2 py-2">Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4">
+
+    <!-- VISTA MESAS -->
+    <section id="vistaMesas">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-white">Mesas y Barras</h2>
+        <div class="text-sm text-slate-400">
+          Ocupadas: <strong id="cntOcupadas" class="text-amber-400">0</strong> | Total en calle: <strong id="totalCalleUsd" class="text-emerald-400">$0.00</strong>
+        </div>
+      </div>
+      <div id="gridMesas" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
+    </section>
+
+    <!-- VISTA DETALLE DE MESA (PANTALLA DIVIDIDA PC) -->
+    <section id="vistaDetalleMesa" class="hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4 bg-slate-900 border border-slate-800 p-3 rounded-xl">
+        <div class="flex items-center gap-3">
+          <button onclick="volverAMesas()" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg text-sm font-semibold">← Volver</button>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 id="detNombreMesa" class="text-xl font-bold text-white"></h2>
+              <span id="detEstadoMesa" class="text-xs px-2 py-0.5 rounded-full font-bold"></span>
+            </div>
+            <p id="detInfoUlt" class="text-xs text-slate-400"></p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button onclick="abrirModalQR()" class="bg-slate-800 hover:bg-slate-700 border border-amber-400/40 text-amber-400 px-3 py-2 rounded-lg text-sm font-semibold">Ver / Descargar QR</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- IZQUIERDA: CATÁLOGO DE PRODUCTOS -->
+        <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col max-h-[75vh]">
+          <div class="flex gap-2 mb-3">
+            <input id="buscadorProd" type="text" placeholder="Buscar producto o escanear código de barras + Enter..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" oninput="renderCatalogo()" onkeydown="manejarEnterBuscador(event)" />
+          </div>
+          <div id="filtroCategorias" class="flex gap-2 overflow-x-auto pb-2 mb-3"></div>
+          <div id="listaCatalogo" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- DERECHA: CUENTA ACTIVA Y COBRO -->
+        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col max-h-[75vh]">
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <input id="detAlias" type="text" placeholder="Apodo del cliente" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" />
+            <div class="flex gap-1">
+              <input id="detNota" type="text" placeholder="Nota interna" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" />
+              <button onclick="guardarDatosMesa()" class="bg-slate-700 hover:bg-slate-600 px-3 rounded-lg text-sm font-bold text-amber-400" title="Guardar datos">💾</button>
+            </div>
+          </div>
+
+          <h3 class="text-sm font-bold text-slate-300 mb-2 border-b border-slate-800 pb-1">Consumo actual</h3>
+          <div id="listaConsumo" class="flex-1 overflow-y-auto space-y-2 pr-1 mb-3"></div>
+
+          <div class="border-t border-slate-800 pt-3 mt-auto">
+            <div class="flex justify-between items-end mb-3">
+              <span class="text-slate-400 text-sm">Total a pagar:</span>
+              <div class="text-right">
+                <div id="detTotalUsd" class="text-2xl font-bold text-amber-400">$0.00</div>
+                <div id="detTotalBs" class="text-sm font-semibold text-slate-200">Bs. 0,00</div>
+              </div>
+            </div>
+            <button onclick="cobrarMesa()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-3 rounded-xl transition">Cobrar y liberar mesa</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL NUEVA MESA -->
+  <div id="modalNuevaMesa" class="fixed inset-0 z-40 bg-black/70 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm">
+      <h3 class="text-lg font-bold text-amber-400 mb-4">Nueva Mesa / Barra</h3>
+      <input id="nmNombre" type="text" placeholder="Ej: Mesa 7 o Barra 2" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white mb-3" />
+      <input id="nmAlias" type="text" placeholder="Apodo cliente (opcional)" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white mb-4" />
+      <div class="flex justify-end gap-2">
+        <button onclick="cerrarModal('modalNuevaMesa')" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 text-sm">Cancelar</button>
+        <button onclick="crearNuevaMesa()" class="px-4 py-2 rounded-lg bg-amber-400 text-slate-950 font-bold text-sm">Crear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL QR HD -->
+  <div id="modalQR" class="fixed inset-0 z-40 bg-black/80 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm text-center">
+      <h3 id="qrTitulo" class="text-xl font-bold text-amber-400 mb-1"></h3>
+      <p class="text-xs text-slate-400 mb-4">Escanea para ver tu cuenta en vivo</p>
+      <div class="bg-white p-3 rounded-xl inline-block mb-4">
+        <img id="qrImg" class="w-56 h-56 object-contain" crossorigin="anonymous" />
+      </div>
+      <div class="flex flex-col gap-2">
+        <button onclick="descargarQRHD()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm">Descargar QR en HD (PNG)</button>
+        <button onclick="cerrarModal('modalQR')" class="w-full bg-slate-800 text-slate-300 py-2 rounded-xl text-sm">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL HISTORIAL -->
+  <div id="modalHistorial" class="fixed inset-0 z-40 bg-black/80 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-3xl max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <h3 class="text-xl font-bold text-amber-400">Historial de Ventas</h3>
+          <p id="histResumen" class="text-sm text-slate-300"></p>
+        </div>
+        <button onclick="cerrarModal('modalHistorial')" class="bg-slate-800 px-3 py-1.5 rounded-lg text-sm">Cerrar</button>
+      </div>
+      <div id="listaHistorial" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+    </div>
+  </div>
+
+  <!-- MODAL ADMIN -->
+  <div id="modalAdmin" class="fixed inset-0 z-40 bg-black/80 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+        <h3 class="text-xl font-bold text-amber-400">Panel de Administrador</h3>
+        <button onclick="cerrarModal('modalAdmin')" class="bg-slate-800 px-3 py-1.5 rounded-lg text-sm">Cerrar</button>
+      </div>
+
+      <!-- PIN -->
+      <div id="adminPinBox" class="py-8 max-w-xs mx-auto text-center">
+        <p class="text-sm text-slate-400 mb-3">Ingresa el PIN de Administrador</p>
+        <input id="inputPin" type="password" placeholder="PIN" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-center text-lg tracking-widest mb-3" onkeydown="if(event.key==='Enter') validarAdmin()" />
+        <button onclick="validarAdmin()" class="w-full bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg">Desbloquear</button>
+      </div>
+
+      <!-- CONTENIDO ADMIN -->
+      <div id="adminContent" class="hidden flex-1 overflow-y-auto space-y-6 pr-1">
+        <!-- TASA Y HISTORIAL -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
+            <h4 class="font-bold text-sm text-amber-400 mb-2">Tasa BCV (Bs por $1)</h4>
+            <div class="flex gap-2">
+              <input id="admTasa" type="number" step="0.01" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white" />
+              <button onclick="actualizarTasa()" class="bg-amber-400 text-slate-950 font-bold px-4 rounded-lg text-sm">Actualizar</button>
+            </div>
+          </div>
+          <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl flex items-center justify-between">
+            <div>
+              <h4 class="font-bold text-sm text-red-400">Cierre de Caja</h4>
+              <p class="text-xs text-slate-400">Borra las ventas del día en Historial</p>
+            </div>
+            <button onclick="limpiarHistorial()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/40 px-3 py-2 rounded-lg text-sm font-bold">Limpiar Historial</button>
+          </div>
+        </div>
+
+        <!-- GESTIONAR PRODUCTOS -->
+        <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="font-bold text-amber-400">Agregar / Editar Producto</h4>
+            <button onclick="limpiarFormProd()" class="text-xs text-slate-400 hover:text-white underline">Limpiar formulario</button>
+          </div>
+          <input type="hidden" id="pId" />
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-3">
+            <input id="pNombre" placeholder="Nombre *" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm col-span-2" />
+            <input id="pCategoria" placeholder="Categoría (ej: licores)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="pPrecio" type="number" step="0.01" placeholder="Precio USD *" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="pUCombo" type="number" placeholder="Unid. combo (ej: 12)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="pPCombo" type="number" step="0.01" placeholder="Precio combo USD" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="pCodigo" placeholder="Código de barras" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+            <select id="pActivo" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+              <option value="SI">Activo: SI</option>
+              <option value="NO">Activo: NO</option>
+            </select>
+            <input id="pImagenUrl" placeholder="URL imagen (o sube archivo ->)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm col-span-2" />
+            <input id="pFile" type="file" accept="image/*" onchange="subirFotoDrive(event)" class="text-xs text-slate-300 col-span-2 self-center" />
+          </div>
+          <button id="btnGuardarProd" onclick="guardarProducto()" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-5 py-2 rounded-lg text-sm">Guardar Producto</button>
+
+          <div id="listaProdAdmin" class="mt-4 max-h-56 overflow-y-auto divide-y divide-slate-700/60"></div>
+        </div>
+
+        <!-- GESTIONAR MESAS -->
+        <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
+          <h4 class="font-bold text-amber-400 mb-3">Gestionar Mesas</h4>
+          <div id="listaMesasAdmin" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-4 right-4 z-50 bg-slate-800 border border-amber-400/50 text-white px-4 py-2.5 rounded-xl shadow-xl text-sm hidden"></div>
+
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxptni1VZnL2Vc8k0RMJ2BhBxGnvgZw1IJxwjbVbx8Bh262N8r6NQc4tuoMz2uwiTE-/exec';
+  const QR_BASE_URL = 'https://licorerialajoya-chacao.github.io/LAJOYA27/?mesa=';
+
+  let state = {
+    trabajador: localStorage.getItem('lj_trabajador') || '',
+    pin: '',
+    config: { tasa_bs: 0, trabajadores: [] },
+    productos: [],
+    productosAdmin: [],
+    mesas: [],
+    cuentas: [],
+    mesaActivaId: null,
+    categoriaActiva: 'Todos'
+  };
+
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    clearTimeout(window._toastT);
+    window._toastT = setTimeout(() => el.classList.add('hidden'), 3000);
+  }
+
+  function fmtBs(val) {
+    return 'Bs. ' + Number(val || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function calcularLinea(prod, cant) {
+    const uCombo = prod.unidades_combo || 0;
+    let combos = 0, sueltas = cant, subtotalUsd = 0;
+    if (uCombo > 1 && prod.precio_combo_usd > 0) {
+      combos = Math.floor(cant / uCombo);
+      sueltas = cant % uCombo;
+      subtotalUsd = (combos * prod.precio_combo_usd) + (sueltas * prod.precio_usd);
+    } else {
+      subtotalUsd = cant * prod.precio_usd;
+    }
+    subtotalUsd = Math.round(subtotalUsd * 100) / 100;
+    const subtotalBs = Math.round(subtotalUsd * state.config.tasa_bs * 100) / 100;
+    return { combos, sueltas, subtotalUsd, subtotalBs };
+  }
+
+  async function apiGet(action) {
+    const res = await fetch(`${API_URL}?action=${action}&t=${Date.now()}`);
+    return await res.json();
+  }
+
+  async function apiPost(payload) {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    return await res.json();
+  }
+
+  async function init() {
+    try {
+      const data = await apiGet('init');
+      if (data.ok) {
+        state.config = data.config;
+        state.productos = data.productos || [];
+        state.mesas = data.mesas || [];
+        state.cuentas = data.cuentas || [];
+        renderTrabajadoresLogin();
+        if (state.trabajador) {
+          document.getElementById('loginScreen').classList.add('hidden');
+          document.getElementById('lblTrabajador').textContent = state.trabajador;
+        }
+        renderTodo();
+        setInterval(syncVivo, 7000);
+      }
+    } catch (e) {
+      toast('Error conectando con el servidor');
+    }
+  }
+
+  async function syncVivo() {
+    const dot = document.getElementById('syncDot');
+    dot.classList.replace('bg-emerald-400', 'bg-amber-400');
+    try {
+      const data = await apiGet('sync');
+      if (data.ok) {
+        state.config = data.config;
+        state.mesas = data.mesas || [];
+        state.cuentas = data.cuentas || [];
+        renderTodo();
+      }
+    } catch (e) {}
+    dot.classList.replace('bg-amber-400', 'bg-emerald-400');
+  }
+
+  function renderTrabajadoresLogin() {
+    const cont = document.getElementById('listaTrabajadores');
+    cont.innerHTML = (state.config.trabajadores || []).map(t =>
+      `<button onclick="document.getElementById('inputTrabajador').value='${t}'; iniciarTurno();" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-1.5 rounded-full text-slate-200">${t}</button>`
+    ).join('');
+  }
+
+  function iniciarTurno() {
+    const nombre = document.getElementById('inputTrabajador').value.trim();
+    if (!nombre) return toast('Escribe tu nombre');
+    state.trabajador = nombre;
+    localStorage.setItem('lj_trabajador', nombre);
+    document.getElementById('lblTrabajador').textContent = nombre;
+    document.getElementById('loginScreen').classList.add('hidden');
+  }
+
+  function cambiarTurno() {
+    localStorage.removeItem('lj_trabajador');
+    state.trabajador = '';
+    document.getElementById('inputTrabajador').value = '';
+    document.getElementById('loginScreen').classList.remove('hidden');
+  }
+
+  function getTotalMesa(idMesa) {
+    const cuentasMesa = state.cuentas.filter(c => c.id_mesa === idMesa);
+    let usd = 0;
+    cuentasMesa.forEach(c => {
+      const prod = state.productos.find(p => p.id_producto === c.id_producto);
+      if (prod) usd += calcularLinea(prod, c.cantidad_unidades).subtotalUsd;
+    });
+    usd = Math.round(usd * 100) / 100;
+    return { usd, bs: Math.round(usd * state.config.tasa_bs * 100) / 100, items: cuentasMesa.length };
+  }
+
+  function renderTodo() {
+    document.getElementById('lblTasa').textContent = `${state.config.tasa_bs.toFixed(2)} Bs`;
+    renderMesas();
+    if (state.mesaActivaId) renderDetalleMesa();
+  }
+
+  function renderMesas() {
+    const grid = document.getElementById('gridMesas');
+    let ocupadas = 0, totalCalle = 0;
+
+    grid.innerHTML = state.mesas.map(m => {
+      const tot = getTotalMesa(m.id_mesa);
+      const isOcupada = m.estado === 'OCUPADA' || tot.usd > 0;
+      if (isOcupada) { ocupadas++; totalCalle += tot.usd; }
+      return `
+        <div onclick="abrirMesa('${m.id_mesa}')" class="cursor-pointer bg-slate-900 hover:bg-slate-800/90 border ${isOcupada ? 'border-amber-400/60' : 'border-slate-800'} rounded-xl p-3.5 transition flex flex-col justify-between">
+          <div class="flex justify-between items-start gap-2 mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🪑</span>
+              <h3 class="font-bold text-white text-base leading-tight">${m.nombre_mesa}</h3>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${isOcupada ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}">${isOcupada ? 'OCUPADA' : 'LIBRE'}</span>
+          </div>
+          <p class="text-xs text-slate-400 truncate mb-2">${m.alias_cliente || 'Sin cliente'}</p>
+          <div class="border-t border-slate-800 pt-2">
+            <div class="text-lg font-bold ${isOcupada ? 'text-amber-400' : 'text-slate-500'}">$${tot.usd.toFixed(2)}</div>
+            <div class="text-xs font-medium text-slate-300">${fmtBs(tot.bs)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('cntOcupadas').textContent = ocupadas;
+    document.getElementById('totalCalleUsd').textContent = `$${totalCalle.toFixed(2)}`;
+  }
+
+  function abrirMesa(idMesa) {
+    state.mesaActivaId = idMesa;
+    document.getElementById('vistaMesas').classList.add('hidden');
+    document.getElementById('vistaDetalleMesa').classList.remove('hidden');
+    const mesa = state.mesas.find(m => m.id_mesa === idMesa);
+    if (mesa) {
+      document.getElementById('detAlias').value = mesa.alias_cliente || '';
+      document.getElementById('detNota').value = mesa.nota_interna || '';
+    }
+    renderCategorias();
+    renderDetalleMesa();
+  }
+
+  function volverAMesas() {
+    state.mesaActivaId = null;
+    document.getElementById('vistaDetalleMesa').classList.add('hidden');
+    document.getElementById('vistaMesas').classList.remove('hidden');
+    renderMesas();
+  }
+
+  function renderCategorias() {
+    const cats = ['Todos', ...new Set(state.productos.map(p => p.categoria || 'Otros'))];
+    document.getElementById('filtroCategorias').innerHTML = cats.map(c =>
+      `<button onclick="state.categoriaActiva='${c}'; renderCategorias(); renderCatalogo();" class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${state.categoriaActiva === c ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">${c}</button>`
+    ).join('');
+  }
+
+  function renderDetalleMesa() {
+    const mesa = state.mesas.find(m => m.id_mesa === state.mesaActivaId);
+    if (!mesa) return volverAMesas();
+
+    document.getElementById('detNombreMesa').textContent = mesa.nombre_mesa;
+    const isOcupada = mesa.estado === 'OCUPADA';
+    const estEl = document.getElementById('detEstadoMesa');
+    estEl.textContent = mesa.estado;
+    estEl.className = `text-xs px-2 py-0.5 rounded-full font-bold ${isOcupada ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`;
+    document.getElementById('detInfoUlt').textContent = mesa.ultimo_trabajador ? `Último: ${mesa.ultimo_trabajador} (${mesa.ultima_actualizacion})` : '';
+
+    renderCatalogo();
+    renderConsumo();
+  }
+
+  function renderCatalogo() {
+    const q = document.getElementById('buscadorProd').value.trim().toLowerCase();
+    const cuentasMesa = state.cuentas.filter(c => c.id_mesa === state.mesaActivaId);
+
+    const filtrados = state.productos.filter(p => {
+      const okCat = state.categoriaActiva === 'Todos' || p.categoria === state.categoriaActiva;
+      const okQ = !q || p.nombre.toLowerCase().includes(q) || (p.codigo_barra && p.codigo_barra.toLowerCase().includes(q));
+      return okCat && okQ;
+    });
+
+    document.getElementById('listaCatalogo').innerHTML = filtrados.map(p => {
+      const c = cuentasMesa.find(x => x.id_producto === p.id_producto);
+      const cant = c ? c.cantidad_unidades : 0;
+      const precioBs = Math.round(p.precio_usd * state.config.tasa_bs * 100) / 100;
+      const img = p.imagen_url || 'https://i.ibb.co/gLJsFsnX/logojoya.png';
+      return `
+        <div class="bg-slate-800/70 border ${cant > 0 ? 'border-amber-400/60' : 'border-slate-700/70'} rounded-xl p-2.5 flex flex-col justify-between gap-2">
+          <div class="flex gap-2.5 items-center">
+            <img src="${img}" class="w-11 h-11 rounded-lg object-cover bg-white shrink-0" />
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-sm text-white truncate">${p.nombre}</div>
+              <div class="text-xs"><span class="text-amber-400 font-bold">$${p.precio_usd.toFixed(2)}</span> <span class="text-slate-300">· ${fmtBs(precioBs)}</span></div>
+              ${p.unidades_combo > 1 && p.precio_combo_usd > 0 ? `<div class="text-[11px] text-sky-400 font-medium">Combo x${p.unidades_combo}: $${p.precio_combo_usd.toFixed(2)}</div>` : ''}
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-1.5">
+            <button onclick="ajustarItem('${p.id_producto}', -1)" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-700 font-bold text-white">-</button>
+            <span class="w-8 text-center font-bold text-sm">${cant}</span>
+            <button onclick="ajustarItem('${p.id_producto}', 1)" class="w-9 h-8 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold">+</button>
+            ${p.unidades_combo > 1 ? `<button onclick="ajustarItem('${p.id_producto}', ${p.unidades_combo})" class="px-2 h-8 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold">+${p.unidades_combo}</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function manejarEnterBuscador(e) {
+    if (e.key !== 'Enter') return;
+    const q = e.target.value.trim().toLowerCase();
+    if (!q) return;
+    const exacto = state.productos.find(p => p.codigo_barra && p.codigo_barra.toLowerCase() === q);
+    if (exacto) {
+      ajustarItem(exacto.id_producto, 1);
+      e.target.value = '';
+      renderCatalogo();
+      toast(`+1 ${exacto.nombre}`);
+    }
+  }
+
+  function renderConsumo() {
+    const cuentasMesa = state.cuentas.filter(c => c.id_mesa === state.mesaActivaId);
+    let totalUsd = 0;
+    const cont = document.getElementById('listaConsumo');
+
+    if (cuentasMesa.length === 0) {
+      cont.innerHTML = '<p class="text-slate-500 text-sm text-center py-8">No hay consumos en esta mesa.</p>';
+    } else {
+      cont.innerHTML = cuentasMesa.map(c => {
+        const prod = state.productos.find(p => p.id_producto === c.id_producto) || { nombre: c.id_producto, precio_usd: 0, unidades_combo: 0, precio_combo_usd: 0 };
+        const calc = calcularLinea(prod, c.cantidad_unidades);
+        totalUsd += calc.subtotalUsd;
+        let desc = `${c.cantidad_unidades} und`;
+        if (calc.combos > 0 && calc.sueltas > 0) desc = `${calc.combos} combo(s) + ${calc.sueltas} suelta(s)`;
+        else if (calc.combos > 0) desc = `${calc.combos} combo(s)`;
+
+        return `
+          <div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2.5 flex justify-between items-center gap-2">
+            <div>
+              <div class="font-bold text-sm text-white">${prod.nombre}</div>
+              <div class="text-xs text-slate-400">${desc} · ${c.agregado_por} ${c.hora}</div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-amber-400 text-sm">$${calc.subtotalUsd.toFixed(2)}</div>
+              <div class="text-xs text-slate-300 font-medium">${fmtBs(calc.subtotalBs)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    totalUsd = Math.round(totalUsd * 100) / 100;
+    const totalBs = Math.round(totalUsd * state.config.tasa_bs * 100) / 100;
+    document.getElementById('detTotalUsd').textContent = `$${totalUsd.toFixed(2)}`;
+    document.getElementById('detTotalBs').textContent = fmtBs(totalBs);
+  }
+
+  async function ajustarItem(idProducto, delta) {
+    toast('Actualizando...');
+    const res = await apiPost({
+      action: 'ajustar_item',
+      action_id: Date.now() + '_' + Math.random(),
+      id_mesa: state.mesaActivaId,
+      id_producto: idProducto,
+      delta: delta,
+      trabajador: state.trabajador
+    });
+    if (res.ok) {
+      state.mesas = res.mesas;
+      state.cuentas = res.cuentas;
+      renderTodo();
+    } else {
+      toast(res.error || 'Error al actualizar');
+    }
+  }
+
+  async function guardarDatosMesa() {
+    const res = await apiPost({
+      action: 'actualizar_mesa',
+      id_mesa: state.mesaActivaId,
+      alias_cliente: document.getElementById('detAlias').value.trim(),
+      nota_interna: document.getElementById('detNota').value.trim(),
+      trabajador: state.trabajador
+    });
+    if (res.ok) {
+      state.mesas = res.mesas;
+      renderTodo();
+      toast('Datos guardados');
+    }
+  }
+
+  async function cobrarMesa() {
+    if (!confirm('¿Confirmas cobrar y liberar esta mesa?')) return;
+    toast('Cobrando mesa...');
+    const res = await apiPost({
+      action: 'cobrar_mesa',
+      id_mesa: state.mesaActivaId,
+      trabajador: state.trabajador
+    });
+    if (res.ok) {
+      state.mesas = res.mesas;
+      state.cuentas = res.cuentas;
+      toast('Mesa cobrada y liberada');
+      volverAMesas();
+    }
+  }
+
+  function abrirModalNuevaMesa() {
+    document.getElementById('nmNombre').value = '';
+    document.getElementById('nmAlias').value = '';
+    document.getElementById('modalNuevaMesa').classList.replace('hidden', 'flex');
+  }
+
+  async function crearNuevaMesa() {
+    const nombre = document.getElementById('nmNombre').value.trim();
+    if (!nombre) return toast('Escribe un nombre');
+    const res = await apiPost({
+      action: 'nueva_cuenta',
+      nombre_mesa: nombre,
+      alias_cliente: document.getElementById('nmAlias').value.trim(),
+      trabajador: state.trabajador
+    });
+    if (res.ok) {
+      state.mesas = res.mesas;
+      cerrarModal('modalNuevaMesa');
+      renderTodo();
+      toast('Mesa creada');
+    }
+  }
+
+  function abrirModalQR() {
+    const mesa = state.mesas.find(m => m.id_mesa === state.mesaActivaId);
+    if (!mesa) return;
+    document.getElementById('qrTitulo').textContent = mesa.nombre_mesa;
+    const url = encodeURIComponent(QR_BASE_URL + mesa.id_mesa);
+    document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${url}`;
+    document.getElementById('modalQR').classList.replace('hidden', 'flex');
+  }
+
+  function descargarQRHD() {
+    const mesa = state.mesas.find(m => m.id_mesa === state.mesaActivaId);
+    const img = document.getElementById('qrImg');
+    const canvas = document.createElement('canvas');
+    canvas.width = 1000; canvas.height = 1250;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 1000, 1250);
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 48px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('LICORERÍA LA JOYA', 500, 95);
+    ctx.fillStyle = '#d97706';
+    ctx.font = 'bold 68px sans-serif';
+    ctx.fillText(mesa.nombre_mesa.toUpperCase(), 500, 180);
+
+    ctx.drawImage(img, 100, 230, 800, 800);
+
+    ctx.fillStyle = '#374151';
+    ctx.font = 'bold 34px sans-serif';
+    ctx.fillText('Escanea para ver tu cuenta en vivo', 500, 1130);
+
+    const a = document.createElement('a');
+    a.download = `QR_${mesa.nombre_mesa.replace(/\s+/g, '_')}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  }
+
+  async function abrirHistorial() {
+    document.getElementById('modalHistorial').classList.replace('hidden', 'flex');
+    document.getElementById('listaHistorial').innerHTML = '<p class="text-slate-400 text-sm">Cargando...</p>';
+    const data = await apiGet('historial');
+    if (data.ok) {
+      document.getElementById('histResumen').textContent = `${data.cantidad} ventas · Total: $${data.total_usd.toFixed(2)} (${fmtBs(data.total_bs)})`;
+      document.getElementById('listaHistorial').innerHTML = (data.ventas || []).map(v => `
+        <div class="bg-slate-800/70 border border-slate-700 p-3 rounded-xl flex justify-between gap-3">
+          <div>
+            <div class="font-bold text-white text-sm">${v.mesa} ${v.alias_cliente ? '· ' + v.alias_cliente : ''}</div>
+            <div class="text-xs text-slate-400">${v.fecha_hora} · Cobró: ${v.cobrado_por}</div>
+            <div class="text-xs text-slate-300 mt-1">${v.detalle}</div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="font-bold text-amber-400">$${v.total_usd.toFixed(2)}</div>
+            <div class="text-xs text-slate-300">${fmtBs(v.total_bs)}</div>
+          </div>
+        </div>
+      `).join('') || '<p class="text-slate-500 text-center py-6">No hay ventas registradas.</p>';
+    }
+  }
+
+  function abrirAdmin() {
+    document.getElementById('modalAdmin').classList.replace('hidden', 'flex');
+    if (state.pin) {
+      document.getElementById('adminPinBox').classList.add('hidden');
+      document.getElementById('adminContent').classList.remove('hidden');
+      document.getElementById('admTasa').value = state.config.tasa_bs;
+      renderAdminListas();
+    } else {
+      document.getElementById('inputPin').value = '';
+      document.getElementById('adminPinBox').classList.remove('hidden');
+      document.getElementById('adminContent').classList.add('hidden');
+    }
+  }
+
+  async function validarAdmin() {
+    const pin = document.getElementById('inputPin').value.trim();
+    const res = await apiPost({ action: 'validar_admin', pin });
+    if (res.ok) {
+      state.pin = pin;
+      state.productosAdmin = res.productos_admin || [];
+      document.getElementById('adminPinBox').classList.add('hidden');
+      document.getElementById('adminContent').classList.remove('hidden');
+      document.getElementById('admTasa').value = state.config.tasa_bs;
+      renderAdminListas();
+    } else {
+      toast(res.error || 'PIN incorrecto');
+    }
+  }
+
+  function renderAdminListas() {
+    document.getElementById('listaProdAdmin').innerHTML = state.productosAdmin.map(p => `
+      <div class="py-2 flex justify-between items-center text-sm">
+        <div>
+          <strong class="text-white">${p.nombre}</strong> <span class="text-amber-400">$${p.precio_usd.toFixed(2)}</span>
+          <span class="text-xs text-slate-400 ml-2">${p.categoria} · ${p.activo === 'SI' ? 'Activo' : 'Inactivo'} ${p.codigo_barra ? '· Cod: ' + p.codigo_barra : ''}</span>
+        </div>
+        <button onclick='editarProd(${JSON.stringify(p)})' class="text-xs bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded">Editar</button>
+      </div>
+    `).join('');
+
+    document.getElementById('listaMesasAdmin').innerHTML = state.mesas.map(m => `
+      <div class="bg-slate-900 border border-slate-700 p-2.5 rounded-lg flex justify-between items-center text-sm">
+        <span><strong>${m.nombre_mesa}</strong> <small class="text-slate-500">(ID: ${m.id_mesa})</small></span>
+        <div class="flex gap-1.5">
+          <button onclick="renombrarMesa('${m.id_mesa}', '${m.nombre_mesa}')" class="text-xs bg-slate-700 px-2 py-1 rounded">Renombrar</button>
+          <button onclick="eliminarMesa('${m.id_mesa}', '${m.nombre_mesa}')" class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Eliminar</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function editarProd(p) {
+    document.getElementById('pId').value = p.id_producto;
+    document.getElementById('pNombre').value = p.nombre;
+    document.getElementById('pCategoria').value = p.categoria;
+    document.getElementById('pPrecio').value = p.precio_usd;
+    document.getElementById('pUCombo').value = p.unidades_combo;
+    document.getElementById('pPCombo').value = p.precio_combo_usd;
+    document.getElementById('pCodigo').value = p.codigo_barra || '';
+    document.getElementById('pActivo').value = p.activo || 'SI';
+    document.getElementById('pImagenUrl').value = p.imagen_url || '';
+  }
+
+  function limpiarFormProd() {
+    ['pId','pNombre','pCategoria','pPrecio','pUCombo','pPCombo','pCodigo','pImagenUrl','pFile'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('pActivo').value = 'SI';
+  }
+
+  async function subirFotoDrive(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const btn = document.getElementById('btnGuardarProd');
+    btn.disabled = true; btn.textContent = 'Subiendo foto...';
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const res = await apiPost({
+        action: 'subir_imagen',
+        pin: state.pin,
+        imagen_base64: reader.result,
+        mime_type: file.type,
+        nombre_archivo: file.name
+      });
+      if (res.ok) {
+        document.getElementById('pImagenUrl').value = res.imagen_url;
+        toast('Foto subida a Drive');
+      } else {
+        toast(res.error || 'Error subiendo foto');
+      }
+      btn.disabled = false; btn.textContent = 'Guardar Producto';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function guardarProducto() {
+    const res = await apiPost({
+      action: 'guardar_producto',
+      pin: state.pin,
+      id_producto: document.getElementById('pId').value.trim(),
+      nombre: document.getElementById('pNombre').value.trim(),
+      categoria: document.getElementById('pCategoria').value.trim() || 'Otros',
+      precio_usd: document.getElementById('pPrecio').value,
+      unidades_combo: document.getElementById('pUCombo').value,
+      precio_combo_usd: document.getElementById('pPCombo').value,
+      codigo_barra: document.getElementById('pCodigo').value.trim(),
+      activo: document.getElementById('pActivo').value,
+      imagen_url: document.getElementById('pImagenUrl').value.trim()
+    });
+    if (res.ok) {
+      state.productos = res.productos;
+      state.productosAdmin = res.productos_admin;
+      limpiarFormProd();
+      renderAdminListas();
+      renderTodo();
+      toast('Producto guardado en Sheets');
+    } else {
+      toast(res.error || 'Error guardando');
+    }
+  }
+
+  async function actualizarTasa() {
+    const res = await apiPost({ action: 'actualizar_tasa', pin: state.pin, tasa_bs: document.getElementById('admTasa').value });
+    if (res.ok) { state.config = res.config; renderTodo(); toast('Tasa actualizada'); }
+  }
+
+  async function limpiarHistorial() {
+    if (!confirm('¿Seguro que deseas borrar todo el historial de ventas?')) return;
+    const res = await apiPost({ action: 'limpiar_historial', pin: state.pin });
+    if (res.ok) toast('Historial limpiado');
+  }
+
+  async function renombrarMesa(id, actual) {
+    const nuevo = prompt('Nuevo nombre para ' + actual, actual);
+    if (!nuevo) return;
+    const res = await apiPost({ action: 'renombrar_mesa', pin: state.pin, id_mesa: id, nombre_mesa: nuevo, trabajador: state.trabajador });
+    if (res.ok) { state.mesas = res.mesas; renderAdminListas(); renderTodo(); toast('Mesa renombrada'); }
+  }
+
+  async function eliminarMesa(id, nombre) {
+    if (!confirm(`¿Eliminar ${nombre}? (Si ya imprimiste su QR dejará de funcionar)`)) return;
+    const res = await apiPost({ action: 'eliminar_mesa', pin: state.pin, id_mesa: id });
+    if (res.ok) { state.mesas = res.mesas; state.cuentas = res.cuentas; renderAdminListas(); renderTodo(); toast('Mesa eliminada'); }
+  }
+
+  function cerrarModal(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
+
+  init();
+</script>
+</body>
+</html>
