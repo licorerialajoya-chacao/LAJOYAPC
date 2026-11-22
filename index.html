@@ -79,7 +79,8 @@
             <p id="detInfoUlt" class="text-xs text-slate-400"></p>
           </div>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
+          <button onclick="vaciarMesaAdmin()" class="bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 px-3 py-2 rounded-lg text-sm font-semibold">Vaciar mesa</button>
           <button onclick="abrirModalQR()" class="bg-slate-800 hover:bg-slate-700 border border-amber-400/40 text-amber-400 px-3 py-2 rounded-lg text-sm font-semibold">Ver / Descargar QR</button>
         </div>
       </div>
@@ -261,6 +262,10 @@
     window._toastT = setTimeout(() => el.classList.add('hidden'), 3000);
   }
 
+  function esc(str) {
+    return String(str || '').replace(/'/g, "\\'");
+  }
+
   function fmtBs(val) {
     return 'Bs. ' + Number(val || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
@@ -333,7 +338,7 @@
   function renderTrabajadoresLogin() {
     const cont = document.getElementById('listaTrabajadores');
     cont.innerHTML = (state.config.trabajadores || []).map(t =>
-      `<button onclick="document.getElementById('inputTrabajador').value='${t}'; iniciarTurno();" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-1.5 rounded-full text-slate-200">${t}</button>`
+      `<button onclick="document.getElementById('inputTrabajador').value='${esc(t)}'; iniciarTurno();" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-1.5 rounded-full text-slate-200">${t}</button>`
     ).join('');
   }
 
@@ -423,7 +428,7 @@
   function renderCategorias() {
     const cats = ['Todos', ...new Set(state.productos.map(p => p.categoria || 'Otros'))];
     document.getElementById('filtroCategorias').innerHTML = cats.map(c =>
-      `<button onclick="state.categoriaActiva='${c}'; renderCategorias(); renderCatalogo();" class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${state.categoriaActiva === c ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">${c}</button>`
+      `<button onclick="state.categoriaActiva='${esc(c)}'; renderCategorias(); renderCatalogo();" class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${state.categoriaActiva === c ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">${c}</button>`
     ).join('');
   }
 
@@ -469,7 +474,7 @@
           </div>
           <div class="flex items-center justify-end gap-1.5">
             <button onclick="ajustarItem('${p.id_producto}', -1)" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-700 font-bold text-white">-</button>
-            <span class="w-8 text-center font-bold text-sm">${cant}</span>
+            <button onclick="fijarCantidad('${p.id_producto}', ${cant}, '${esc(p.nombre)}')" title="Clic para escribir cantidad o poner 0" class="w-9 h-8 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-center font-bold text-sm text-white">${cant}</button>
             <button onclick="ajustarItem('${p.id_producto}', 1)" class="w-9 h-8 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold">+</button>
             ${p.unidades_combo > 1 ? `<button onclick="ajustarItem('${p.id_producto}', ${p.unidades_combo})" class="px-2 h-8 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold">+${p.unidades_combo}</button>` : ''}
           </div>
@@ -509,13 +514,16 @@
 
         return `
           <div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2.5 flex justify-between items-center gap-2">
-            <div>
-              <div class="font-bold text-sm text-white">${prod.nombre}</div>
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-sm text-white truncate">${prod.nombre}</div>
               <div class="text-xs text-slate-400">${desc} · ${c.agregado_por} ${c.hora}</div>
             </div>
-            <div class="text-right">
-              <div class="font-bold text-amber-400 text-sm">$${calc.subtotalUsd.toFixed(2)}</div>
-              <div class="text-xs text-slate-300 font-medium">${fmtBs(calc.subtotalBs)}</div>
+            <div class="flex items-center gap-2.5 shrink-0">
+              <div class="text-right">
+                <div class="font-bold text-amber-400 text-sm">$${calc.subtotalUsd.toFixed(2)}</div>
+                <div class="text-xs text-slate-300 font-medium">${fmtBs(calc.subtotalBs)}</div>
+              </div>
+              <button onclick="eliminarItemConsumo('${c.id_producto}', ${c.cantidad_unidades}, '${esc(prod.nombre)}')" title="Eliminar todo este producto" class="p-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/30 text-red-400 text-sm">🗑️</button>
             </div>
           </div>
         `;
@@ -544,6 +552,41 @@
       renderTodo();
     } else {
       toast(res.error || 'Error al actualizar');
+    }
+  }
+
+  async function fijarCantidad(idProducto, cantActual, nombre) {
+    const val = prompt(`Cantidad exacta para ${nombre} (pon 0 para borrar):`, cantActual);
+    if (val === null) return;
+    const nueva = parseInt(val, 10);
+    if (isNaN(nueva) || nueva < 0) return toast('Número inválido');
+    const delta = nueva - cantActual;
+    if (delta === 0) return;
+    ajustarItem(idProducto, delta);
+  }
+
+  async function eliminarItemConsumo(idProducto, cantActual, nombre) {
+    if (!confirm(`¿Eliminar ${cantActual}x ${nombre} de esta mesa?`)) return;
+    ajustarItem(idProducto, -cantActual);
+  }
+
+  async function vaciarMesaAdmin() {
+    const pin = prompt('SEGURIDAD: Ingresa el PIN de Administrador para vaciar toda esta mesa (no se registrará como venta):');
+    if (!pin) return;
+    toast('Vaciando mesa...');
+    const res = await apiPost({
+      action: 'vaciar_mesa',
+      id_mesa: state.mesaActivaId,
+      pin: pin.trim(),
+      trabajador: state.trabajador
+    });
+    if (res.ok) {
+      state.mesas = res.mesas;
+      state.cuentas = res.cuentas;
+      toast('Mesa vaciada correctamente');
+      volverAMesas();
+    } else {
+      toast(res.error || 'PIN incorrecto');
     }
   }
 
@@ -705,8 +748,8 @@
       <div class="bg-slate-900 border border-slate-700 p-2.5 rounded-lg flex justify-between items-center text-sm">
         <span><strong>${m.nombre_mesa}</strong> <small class="text-slate-500">(ID: ${m.id_mesa})</small></span>
         <div class="flex gap-1.5">
-          <button onclick="renombrarMesa('${m.id_mesa}', '${m.nombre_mesa}')" class="text-xs bg-slate-700 px-2 py-1 rounded">Renombrar</button>
-          <button onclick="eliminarMesa('${m.id_mesa}', '${m.nombre_mesa}')" class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Eliminar</button>
+          <button onclick="renombrarMesa('${m.id_mesa}', '${esc(m.nombre_mesa)}')" class="text-xs bg-slate-700 px-2 py-1 rounded">Renombrar</button>
+          <button onclick="eliminarMesa('${m.id_mesa}', '${esc(m.nombre_mesa)}')" class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Eliminar</button>
         </div>
       </div>
     `).join('');
