@@ -11,6 +11,8 @@
     ::-webkit-scrollbar-track { background: #0f172a; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { opacity: 1; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -89,7 +91,7 @@
         <!-- IZQUIERDA: CATÁLOGO DE PRODUCTOS -->
         <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col max-h-[75vh]">
           <div class="flex gap-2 mb-3">
-            <input id="buscadorProd" type="text" placeholder="Buscar producto o escanear código de barras + Enter..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" oninput="renderCatalogo()" onkeydown="manejarEnterBuscador(event)" />
+            <input id="buscadorProd" type="text" placeholder="Buscar producto o pasar pistola láser + Enter..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" oninput="renderCatalogo()" onkeydown="manejarEnterBuscador(event)" />
           </div>
           <div id="filtroCategorias" class="flex gap-2 overflow-x-auto pb-2 mb-3"></div>
           <div id="listaCatalogo" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto pr-1"></div>
@@ -201,9 +203,9 @@
         </div>
 
         <!-- GESTIONAR PRODUCTOS -->
-        <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
+        <div id="boxFormProducto" class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
           <div class="flex justify-between items-center mb-3">
-            <h4 class="font-bold text-amber-400">Agregar / Editar Producto</h4>
+            <h4 id="tituloFormProd" class="font-bold text-amber-400">Agregar / Editar Producto</h4>
             <button onclick="limpiarFormProd()" class="text-xs text-slate-400 hover:text-white underline">Limpiar formulario</button>
           </div>
           <input type="hidden" id="pId" />
@@ -245,13 +247,15 @@
   let state = {
     trabajador: localStorage.getItem('lj_trabajador') || '',
     pin: '',
+    codigoPendienteNuevo: '',
     config: { tasa_bs: 0, trabajadores: [] },
     productos: [],
     productosAdmin: [],
     mesas: [],
     cuentas: [],
     mesaActivaId: null,
-    categoriaActiva: 'Todos'
+    categoriaActiva: 'Todos',
+    editandoCantidad: false
   };
 
   function toast(msg) {
@@ -321,11 +325,12 @@
   }
 
   async function syncVivo() {
+    if (state.editandoCantidad) return;
     const dot = document.getElementById('syncDot');
     dot.classList.replace('bg-emerald-400', 'bg-amber-400');
     try {
       const data = await apiGet('sync');
-      if (data.ok) {
+      if (data.ok && !state.editandoCantidad) {
         state.config = data.config;
         state.mesas = data.mesas || [];
         state.cuentas = data.cuentas || [];
@@ -420,6 +425,7 @@
 
   function volverAMesas() {
     state.mesaActivaId = null;
+    state.editandoCantidad = false;
     document.getElementById('vistaDetalleMesa').classList.add('hidden');
     document.getElementById('vistaMesas').classList.remove('hidden');
     renderMesas();
@@ -474,7 +480,12 @@
           </div>
           <div class="flex items-center justify-end gap-1.5">
             <button onclick="ajustarItem('${p.id_producto}', -1)" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-700 font-bold text-white">-</button>
-            <button onclick="fijarCantidad('${p.id_producto}', ${cant}, '${esc(p.nombre)}')" title="Clic para escribir cantidad o poner 0" class="w-9 h-8 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-center font-bold text-sm text-white">${cant}</button>
+            <input type="number" min="0" value="${cant}" data-cant-actual="${cant}"
+              onfocus="state.editandoCantidad = true; this.select();"
+              onblur="aplicarInputCantidad(this, '${p.id_producto}')"
+              onkeydown="if(event.key==='Enter'){ this.blur(); }"
+              title="Escribe la cantidad o pon 0 para borrar"
+              class="w-14 h-8 rounded-lg bg-slate-950 border border-slate-600 focus:border-amber-400 text-center font-bold text-sm text-white focus:outline-none" />
             <button onclick="ajustarItem('${p.id_producto}', 1)" class="w-9 h-8 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold">+</button>
             ${p.unidades_combo > 1 ? `<button onclick="ajustarItem('${p.id_producto}', ${p.unidades_combo})" class="px-2 h-8 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold">+${p.unidades_combo}</button>` : ''}
           </div>
@@ -483,16 +494,88 @@
     }).join('');
   }
 
+  async function aplicarInputCantidad(inputEl, idProducto) {
+    state.editandoCantidad = false;
+    const cantActual = parseInt(inputEl.dataset.cantActual, 10) || 0;
+    const raw = inputEl.value.trim();
+    if (raw === '') {
+      inputEl.value = cantActual;
+      return;
+    }
+    const nueva = parseInt(raw, 10);
+    if (isNaN(nueva) || nueva < 0) {
+      inputEl.value = cantActual;
+      return toast('Cantidad inválida');
+    }
+    const delta = nueva - cantActual;
+    if (delta === 0) return;
+    await ajustarItem(idProducto, delta);
+  }
+
+  function procesarCodigoPistola(codigoRaw) {
+    const codigo = String(codigoRaw || '').trim();
+    if (!codigo) return;
+
+    const listaBase = state.productosAdmin.length ? state.productosAdmin : state.productos;
+    const prod = listaBase.find(p => p.codigo_barra && String(p.codigo_barra).trim().toLowerCase() === codigo.toLowerCase());
+
+    if (prod) {
+      if (state.mesaActivaId) {
+        ajustarItem(prod.id_producto, 1);
+        toast(`+1 ${prod.nombre}`);
+      } else {
+        toast(`Producto encontrado: ${prod.nombre} (abre una mesa para sumar)`);
+      }
+      return;
+    }
+
+    // Producto nuevo: abre el formulario de Admin con el código ya puesto
+    toast(`Código nuevo (${codigo}): completa los datos para guardarlo en Sheets`);
+    abrirFormularioNuevoConCodigo(codigo);
+  }
+
+  function abrirFormularioNuevoConCodigo(codigo) {
+    state.codigoPendienteNuevo = codigo;
+    document.getElementById('modalAdmin').classList.replace('hidden', 'flex');
+    if (state.pin) {
+      document.getElementById('adminPinBox').classList.add('hidden');
+      document.getElementById('adminContent').classList.remove('hidden');
+      document.getElementById('admTasa').value = state.config.tasa_bs;
+      renderAdminListas();
+      prepararNuevoProducto(codigo);
+    } else {
+      document.getElementById('inputPin').value = '';
+      document.getElementById('adminPinBox').classList.remove('hidden');
+      document.getElementById('adminContent').classList.add('hidden');
+    }
+  }
+
+  function prepararNuevoProducto(codigo) {
+    limpiarFormProd();
+    document.getElementById('pCodigo').value = codigo || '';
+    document.getElementById('tituloFormProd').textContent = `Nuevo Producto · Código: ${codigo}`;
+    document.getElementById('boxFormProducto').scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => document.getElementById('pNombre').focus(), 150);
+  }
+
   function manejarEnterBuscador(e) {
     if (e.key !== 'Enter') return;
-    const q = e.target.value.trim().toLowerCase();
+    const q = e.target.value.trim();
     if (!q) return;
-    const exacto = state.productos.find(p => p.codigo_barra && p.codigo_barra.toLowerCase() === q);
-    if (exacto) {
-      ajustarItem(exacto.id_producto, 1);
+    const prod = state.productos.find(p => p.codigo_barra && String(p.codigo_barra).trim().toLowerCase() === q.toLowerCase());
+    if (prod) {
+      e.preventDefault();
       e.target.value = '';
       renderCatalogo();
-      toast(`+1 ${exacto.nombre}`);
+      if (state.mesaActivaId) {
+        ajustarItem(prod.id_producto, 1);
+        toast(`+1 ${prod.nombre}`);
+      }
+    } else if (/^[0-9A-Za-z\-_]{4,}$/.test(q) && !q.includes(' ')) {
+      e.preventDefault();
+      e.target.value = '';
+      renderCatalogo();
+      procesarCodigoPistola(q);
     }
   }
 
@@ -553,16 +636,6 @@
     } else {
       toast(res.error || 'Error al actualizar');
     }
-  }
-
-  async function fijarCantidad(idProducto, cantActual, nombre) {
-    const val = prompt(`Cantidad exacta para ${nombre} (pon 0 para borrar):`, cantActual);
-    if (val === null) return;
-    const nueva = parseInt(val, 10);
-    if (isNaN(nueva) || nueva < 0) return toast('Número inválido');
-    const delta = nueva - cantActual;
-    if (delta === 0) return;
-    ajustarItem(idProducto, delta);
   }
 
   async function eliminarItemConsumo(idProducto, cantActual, nombre) {
@@ -728,6 +801,11 @@
       document.getElementById('adminContent').classList.remove('hidden');
       document.getElementById('admTasa').value = state.config.tasa_bs;
       renderAdminListas();
+      if (state.codigoPendienteNuevo) {
+        const cod = state.codigoPendienteNuevo;
+        state.codigoPendienteNuevo = '';
+        prepararNuevoProducto(cod);
+      }
     } else {
       toast(res.error || 'PIN incorrecto');
     }
@@ -756,6 +834,7 @@
   }
 
   function editarProd(p) {
+    document.getElementById('tituloFormProd').textContent = 'Editar Producto';
     document.getElementById('pId').value = p.id_producto;
     document.getElementById('pNombre').value = p.nombre;
     document.getElementById('pCategoria').value = p.categoria;
@@ -768,6 +847,7 @@
   }
 
   function limpiarFormProd() {
+    document.getElementById('tituloFormProd').textContent = 'Agregar / Editar Producto';
     ['pId','pNombre','pCategoria','pPrecio','pUCombo','pPCombo','pCodigo','pImagenUrl','pFile'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('pActivo').value = 'SI';
   }
@@ -798,13 +878,17 @@
   }
 
   async function guardarProducto() {
+    const nombre = document.getElementById('pNombre').value.trim();
+    const precio = parseFloat(document.getElementById('pPrecio').value);
+    if (!nombre || isNaN(precio) || precio <= 0) return toast('Completa Nombre y Precio USD');
+
     const res = await apiPost({
       action: 'guardar_producto',
       pin: state.pin,
       id_producto: document.getElementById('pId').value.trim(),
-      nombre: document.getElementById('pNombre').value.trim(),
+      nombre: nombre,
       categoria: document.getElementById('pCategoria').value.trim() || 'Otros',
-      precio_usd: document.getElementById('pPrecio').value,
+      precio_usd: precio,
       unidades_combo: document.getElementById('pUCombo').value,
       precio_combo_usd: document.getElementById('pPCombo').value,
       codigo_barra: document.getElementById('pCodigo').value.trim(),
@@ -817,7 +901,7 @@
       limpiarFormProd();
       renderAdminListas();
       renderTodo();
-      toast('Producto guardado en Sheets');
+      toast('Producto guardado en Google Sheets');
     } else {
       toast(res.error || 'Error guardando');
     }
@@ -848,6 +932,38 @@
   }
 
   function cerrarModal(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
+
+  // Captura automática de pistola láser (teclado rápido + Enter)
+  let _scanBuffer = '';
+  let _scanTimer = null;
+  document.addEventListener('keydown', (e) => {
+    if (state.editandoCantidad) return;
+    const tag = document.activeElement ? document.activeElement.tagName : '';
+    const idAct = document.activeElement ? document.activeElement.id : '';
+    if (tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (tag === 'INPUT' && idAct !== 'buscadorProd') return;
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+    if (e.key === 'Enter') {
+      if (_scanBuffer.length >= 3) {
+        const code = _scanBuffer.trim();
+        _scanBuffer = '';
+        e.preventDefault();
+        if (idAct === 'buscadorProd') {
+          document.getElementById('buscadorProd').value = '';
+          renderCatalogo();
+        }
+        procesarCodigoPistola(code);
+      }
+      return;
+    }
+
+    if (e.key.length === 1) {
+      _scanBuffer += e.key;
+      clearTimeout(_scanTimer);
+      _scanTimer = setTimeout(() => { _scanBuffer = ''; }, 140);
+    }
+  });
 
   init();
 </script>
