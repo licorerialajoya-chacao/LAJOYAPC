@@ -23,7 +23,7 @@
       <img src="https://i.ibb.co/gLJsFsnX/logojoya.png" alt="La Joya" class="w-24 h-24 mx-auto bg-white rounded-2xl p-2 mb-4 object-contain" />
       <h1 class="text-2xl font-bold text-amber-400">Licorería La Joya</h1>
       <p class="text-slate-400 text-sm mt-1 mb-6">¿Quién está en turno?</p>
-      <input id="inputTrabajador" type="text" placeholder="Escribe tu nombre" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-400 mb-3" />
+      <input id="inputTrabajador" type="text" placeholder="Escribe tu nombre" onkeydown="if(event.key==='Enter') iniciarTurno()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-400 mb-3" />
       <div id="listaTrabajadores" class="flex flex-wrap gap-2 justify-center mb-4"></div>
       <button onclick="iniciarTurno()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-3 rounded-xl transition">Entrar al sistema</button>
     </div>
@@ -36,10 +36,11 @@
         <img src="https://i.ibb.co/gLJsFsnX/logojoya.png" class="w-10 h-10 bg-white rounded-lg p-1 object-contain" />
         <div>
           <h1 class="font-bold text-amber-400 leading-tight text-lg">Licorería La Joya</h1>
-          <div class="text-xs text-slate-400 flex items-center gap-2">
+          <div class="text-xs text-slate-400 flex flex-wrap items-center gap-2">
             <span>Turno: <strong id="lblTrabajador" class="text-white"></strong></span>
             <span>•</span>
-            <span>Tasa BCV: <strong id="lblTasa" class="text-emerald-400">0.00 Bs</strong></span>
+            <span>Tasa activa: <strong id="lblTasa" class="text-emerald-400">0.00 Bs</strong></span>
+            <button id="btnAlertaBcv" onclick="abrirAdmin()" title="Tasa oficial BCV en tiempo real. Haz clic para gestionar en Admin" class="hidden bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 px-2 py-0.5 rounded text-[11px] font-semibold transition"></button>
           </div>
         </div>
       </div>
@@ -115,7 +116,7 @@
               <span class="text-slate-400 text-sm">Total a pagar:</span>
               <div class="text-right">
                 <div id="detTotalUsd" class="text-2xl font-bold text-amber-400">$0.00</div>
-                <div id="detTotalBs" class="text-sm font-semibold text-slate-200">Bs. 0,00</div>
+                <div id="detTotalBs" class="text-sm font-semibold text-slate-200">0.00 Bs</div>
               </div>
             </div>
             <button onclick="cobrarMesa()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-3 rounded-xl transition">Cobrar y liberar mesa</button>
@@ -187,11 +188,16 @@
         <!-- TASA Y HISTORIAL -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
-            <h4 class="font-bold text-sm text-amber-400 mb-2">Tasa BCV (Bs por $1)</h4>
-            <div class="flex gap-2">
-              <input id="admTasa" type="number" step="0.01" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white" />
-              <button onclick="actualizarTasa()" class="bg-amber-400 text-slate-950 font-bold px-4 rounded-lg text-sm">Actualizar</button>
+            <div class="flex justify-between items-center mb-2 gap-2">
+              <h4 class="font-bold text-sm text-amber-400">Tasa del Sistema (Bs por $1)</h4>
+              <span id="lblBcvOficialAdmin" class="text-xs text-emerald-400 font-semibold"></span>
             </div>
+            <div class="flex gap-2">
+              <input id="admTasa" type="number" step="0.01" placeholder="Tasa manual o BCV" class="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white" />
+              <button onclick="aplicarTasaBCVHoy()" title="Cargar tasa oficial BCV de hoy y sincronizar con PC, App y QR" class="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold px-3 rounded-lg text-xs shrink-0">🔄 Usar BCV</button>
+              <button onclick="actualizarTasa()" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-4 rounded-lg text-sm shrink-0">Guardar</button>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2">Puedes poner tu propia tasa o usar la del BCV. Se sincroniza al instante con el teléfono y el QR.</p>
           </div>
           <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl flex items-center justify-between">
             <div>
@@ -250,6 +256,7 @@
   let state = {
     trabajador: localStorage.getItem('lj_trabajador') || '',
     pin: '',
+    tasaBcvApi: 0,
     codigoPendienteNuevo: '',
     capturandoCodigoForm: false,
     config: { tasa_bs: 0, trabajadores: [] },
@@ -271,30 +278,41 @@
   }
 
   function esc(str) {
-    return String(str || '').replace(/'/g, "\\'");
+    return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   }
 
   function fmtBs(val) {
-    return 'Bs. ' + Number(val || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return Number(val || 0).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }) + ' Bs';
+  }
+
+  function getTasaActiva() {
+    return Number(state.config && state.config.tasa_bs ? state.config.tasa_bs : 0);
   }
 
   function calcularLinea(prod, cant) {
-    const uCombo = prod.unidades_combo || 0;
+    const uCombo = Number(prod.unidades_combo || 0);
+    const pUsd = Number(prod.precio_usd || 0);
+    const pComboUsd = Number(prod.precio_combo_usd || 0);
     let combos = 0, sueltas = cant, subtotalUsd = 0;
-    if (uCombo > 1 && prod.precio_combo_usd > 0) {
+
+    if (uCombo > 1 && pComboUsd > 0) {
       combos = Math.floor(cant / uCombo);
       sueltas = cant % uCombo;
-      subtotalUsd = (combos * prod.precio_combo_usd) + (sueltas * prod.precio_usd);
+      subtotalUsd = (combos * pComboUsd) + (sueltas * pUsd);
     } else {
-      subtotalUsd = cant * prod.precio_usd;
+      subtotalUsd = cant * pUsd;
     }
+
     subtotalUsd = Math.round(subtotalUsd * 100) / 100;
-    const subtotalBs = Math.round(subtotalUsd * state.config.tasa_bs * 100) / 100;
+    const subtotalBs = Math.round(subtotalUsd * getTasaActiva() * 100) / 100;
     return { combos, sueltas, subtotalUsd, subtotalBs };
   }
 
   async function apiGet(action) {
-    const res = await fetch(`${API_URL}?action=${action}&t=${Date.now()}`);
+    const res = await fetch(`${API_URL}?action=${action}&t=${Date.now()}`, { cache: 'no-store' });
     return await res.json();
   }
 
@@ -307,11 +325,48 @@
     return await res.json();
   }
 
+  async function consultarTasaBCV() {
+    try {
+      const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { cache: 'no-store' });
+      const data = await res.json();
+      const tasa = parseFloat(data.promedio || data.precio || 0);
+      if (tasa > 0) {
+        state.tasaBcvApi = Math.round(tasa * 100) / 100;
+        actualizarIndicadorBCV();
+      }
+    } catch (e) {}
+  }
+
+  function actualizarIndicadorBCV() {
+    const btn = document.getElementById('btnAlertaBcv');
+    const lblAdmin = document.getElementById('lblBcvOficialAdmin');
+    const tasaActiva = getTasaActiva();
+
+    if (state.tasaBcvApi > 0) {
+      if (lblAdmin) lblAdmin.textContent = `BCV hoy: ${state.tasaBcvApi.toFixed(2)} Bs`;
+      if (Math.abs(state.tasaBcvApi - tasaActiva) >= 0.01) {
+        btn.textContent = `BCV hoy: ${state.tasaBcvApi.toFixed(2)} Bs`;
+        btn.classList.remove('hidden');
+      } else {
+        btn.classList.add('hidden');
+      }
+    }
+  }
+
+  async function aplicarTasaBCVHoy() {
+    toast('Consultando tasa oficial BCV...');
+    await consultarTasaBCV();
+    if (!state.tasaBcvApi) return toast('No se pudo obtener la tasa BCV en este momento');
+    document.getElementById('admTasa').value = state.tasaBcvApi.toFixed(2);
+    await actualizarTasa();
+  }
+
   async function init() {
+    consultarTasaBCV();
     try {
       const data = await apiGet('init');
       if (data.ok) {
-        state.config = data.config;
+        state.config = data.config || { tasa_bs: 0, trabajadores: [] };
         state.productos = data.productos || [];
         state.mesas = data.mesas || [];
         state.cuentas = data.cuentas || [];
@@ -322,6 +377,7 @@
         }
         renderTodo();
         setInterval(syncVivo, 7000);
+        setInterval(consultarTasaBCV, 900000); // Revisa BCV cada 15 min
       }
     } catch (e) {
       toast('Error conectando con el servidor');
@@ -335,9 +391,16 @@
     try {
       const data = await apiGet('sync');
       if (data.ok && !state.editandoCantidad) {
-        state.config = data.config;
+        if (data.config) state.config = data.config;
+        if (data.productos) state.productos = data.productos;
         state.mesas = data.mesas || [];
         state.cuentas = data.cuentas || [];
+
+        // Si Admin está abierto y el usuario no está escribiendo en admTasa, actualiza el valor visible
+        const admTasaEl = document.getElementById('admTasa');
+        if (admTasaEl && document.activeElement !== admTasaEl) {
+          admTasaEl.value = getTasaActiva();
+        }
         renderTodo();
       }
     } catch (e) {}
@@ -375,11 +438,12 @@
       if (prod) usd += calcularLinea(prod, c.cantidad_unidades).subtotalUsd;
     });
     usd = Math.round(usd * 100) / 100;
-    return { usd, bs: Math.round(usd * state.config.tasa_bs * 100) / 100, items: cuentasMesa.length };
+    return { usd, bs: Math.round(usd * getTasaActiva() * 100) / 100, items: cuentasMesa.length };
   }
 
   function renderTodo() {
-    document.getElementById('lblTasa').textContent = `${state.config.tasa_bs.toFixed(2)} Bs`;
+    document.getElementById('lblTasa').textContent = `${getTasaActiva().toFixed(2)} Bs`;
+    actualizarIndicadorBCV();
     renderMesas();
     if (state.mesaActivaId) renderDetalleMesa();
   }
@@ -393,7 +457,7 @@
       const isOcupada = m.estado === 'OCUPADA' || tot.usd > 0;
       if (isOcupada) { ocupadas++; totalCalle += tot.usd; }
       return `
-        <div onclick="abrirMesa('${m.id_mesa}')" class="cursor-pointer bg-slate-900 hover:bg-slate-800/90 border ${isOcupada ? 'border-amber-400/60' : 'border-slate-800'} rounded-xl p-3.5 transition flex flex-col justify-between">
+        <div onclick="abrirMesa('${esc(m.id_mesa)}')" class="cursor-pointer bg-slate-900 hover:bg-slate-800/90 border ${isOcupada ? 'border-amber-400/60' : 'border-slate-800'} rounded-xl p-3.5 transition flex flex-col justify-between">
           <div class="flex justify-between items-start gap-2 mb-2">
             <div class="flex items-center gap-2">
               <span class="text-xl">🪑</span>
@@ -460,17 +524,19 @@
   function renderCatalogo() {
     const q = document.getElementById('buscadorProd').value.trim().toLowerCase();
     const cuentasMesa = state.cuentas.filter(c => c.id_mesa === state.mesaActivaId);
+    const tasa = getTasaActiva();
 
     const filtrados = state.productos.filter(p => {
-      const okCat = state.categoriaActiva === 'Todos' || p.categoria === state.categoriaActiva;
-      const okQ = !q || p.nombre.toLowerCase().includes(q) || (p.codigo_barra && p.codigo_barra.toLowerCase().includes(q));
+      const okCat = state.categoriaActiva === 'Todos' || (p.categoria || 'Otros') === state.categoriaActiva;
+      const okQ = !q || p.nombre.toLowerCase().includes(q) || (p.codigo_barra && String(p.codigo_barra).toLowerCase().includes(q));
       return okCat && okQ;
     });
 
     document.getElementById('listaCatalogo').innerHTML = filtrados.map(p => {
       const c = cuentasMesa.find(x => x.id_producto === p.id_producto);
       const cant = c ? c.cantidad_unidades : 0;
-      const precioBs = Math.round(p.precio_usd * state.config.tasa_bs * 100) / 100;
+      const pUsd = Number(p.precio_usd || 0);
+      const precioBs = Math.round(pUsd * tasa * 100) / 100;
       const img = p.imagen_url || 'https://i.ibb.co/gLJsFsnX/logojoya.png';
       return `
         <div class="bg-slate-800/70 border ${cant > 0 ? 'border-amber-400/60' : 'border-slate-700/70'} rounded-xl p-2.5 flex flex-col justify-between gap-2">
@@ -478,20 +544,20 @@
             <img src="${img}" class="w-11 h-11 rounded-lg object-cover bg-white shrink-0" />
             <div class="min-w-0 flex-1">
               <div class="font-bold text-sm text-white truncate">${p.nombre}</div>
-              <div class="text-xs"><span class="text-amber-400 font-bold">$${p.precio_usd.toFixed(2)}</span> <span class="text-slate-300">· ${fmtBs(precioBs)}</span></div>
-              ${p.unidades_combo > 1 && p.precio_combo_usd > 0 ? `<div class="text-[11px] text-sky-400 font-medium">Combo x${p.unidades_combo}: $${p.precio_combo_usd.toFixed(2)}</div>` : ''}
+              <div class="text-xs"><span class="text-amber-400 font-bold">$${pUsd.toFixed(2)}</span> <span class="text-slate-300">· ${fmtBs(precioBs)}</span></div>
+              ${p.unidades_combo > 1 && p.precio_combo_usd > 0 ? `<div class="text-[11px] text-sky-400 font-medium">Combo x${p.unidades_combo}: $${Number(p.precio_combo_usd).toFixed(2)}</div>` : ''}
             </div>
           </div>
           <div class="flex items-center justify-end gap-1.5">
-            <button onclick="ajustarItem('${p.id_producto}', -1)" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-700 font-bold text-white">-</button>
+            <button onclick="ajustarItem('${esc(p.id_producto)}', -1)" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-700 font-bold text-white">-</button>
             <input type="number" min="0" value="${cant}" data-cant-actual="${cant}"
               onfocus="state.editandoCantidad = true; this.select();"
-              onblur="aplicarInputCantidad(this, '${p.id_producto}')"
+              onblur="aplicarInputCantidad(this, '${esc(p.id_producto)}')"
               onkeydown="if(event.key==='Enter'){ this.blur(); }"
               title="Escribe la cantidad o pon 0 para borrar"
               class="w-14 h-8 rounded-lg bg-slate-950 border border-slate-600 focus:border-amber-400 text-center font-bold text-sm text-white focus:outline-none" />
-            <button onclick="ajustarItem('${p.id_producto}', 1)" class="w-9 h-8 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold">+</button>
-            ${p.unidades_combo > 1 ? `<button onclick="ajustarItem('${p.id_producto}', ${p.unidades_combo})" class="px-2 h-8 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold">+${p.unidades_combo}</button>` : ''}
+            <button onclick="ajustarItem('${esc(p.id_producto)}', 1)" class="w-9 h-8 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold">+</button>
+            ${p.unidades_combo > 1 ? `<button onclick="ajustarItem('${esc(p.id_producto)}', ${p.unidades_combo})" class="px-2 h-8 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold">+${p.unidades_combo}</button>` : ''}
           </div>
         </div>
       `;
@@ -542,7 +608,6 @@
       return;
     }
 
-    // Producto nuevo: abre el formulario de Admin con el código ya puesto
     toast(`Código nuevo (${codigo}): completa los datos para guardarlo en Sheets`);
     abrirFormularioNuevoConCodigo(codigo);
   }
@@ -553,7 +618,8 @@
     if (state.pin) {
       document.getElementById('adminPinBox').classList.add('hidden');
       document.getElementById('adminContent').classList.remove('hidden');
-      document.getElementById('admTasa').value = state.config.tasa_bs;
+      document.getElementById('admTasa').value = getTasaActiva();
+      actualizarIndicadorBCV();
       renderAdminListas();
       prepararNuevoProducto(codigo);
     } else {
@@ -573,11 +639,15 @@
 
   function manejarEnterBuscador(e) {
     if (e.key !== 'Enter') return;
+    e.preventDefault();
+    e.stopPropagation(); // Evita doble lectura con el listener global
+    _scanBuffer = '';
+
     const q = e.target.value.trim();
     if (!q) return;
+
     const prod = state.productos.find(p => p.codigo_barra && String(p.codigo_barra).trim().toLowerCase() === q.toLowerCase());
     if (prod) {
-      e.preventDefault();
       e.target.value = '';
       renderCatalogo();
       if (state.mesaActivaId) {
@@ -585,7 +655,6 @@
         toast(`+1 ${prod.nombre}`);
       }
     } else if (/^[0-9A-Za-z\-_]{4,}$/.test(q) && !q.includes(' ')) {
-      e.preventDefault();
       e.target.value = '';
       renderCatalogo();
       procesarCodigoPistola(q);
@@ -619,7 +688,7 @@
                 <div class="font-bold text-amber-400 text-sm">$${calc.subtotalUsd.toFixed(2)}</div>
                 <div class="text-xs text-slate-300 font-medium">${fmtBs(calc.subtotalBs)}</div>
               </div>
-              <button onclick="eliminarItemConsumo('${c.id_producto}', ${c.cantidad_unidades}, '${esc(prod.nombre)}')" title="Eliminar todo este producto" class="p-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/30 text-red-400 text-sm">🗑️</button>
+              <button onclick="eliminarItemConsumo('${esc(c.id_producto)}', ${c.cantidad_unidades}, '${esc(prod.nombre)}')" title="Eliminar todo este producto" class="p-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/30 text-red-400 text-sm">🗑️</button>
             </div>
           </div>
         `;
@@ -627,27 +696,31 @@
     }
 
     totalUsd = Math.round(totalUsd * 100) / 100;
-    const totalBs = Math.round(totalUsd * state.config.tasa_bs * 100) / 100;
+    const totalBs = Math.round(totalUsd * getTasaActiva() * 100) / 100;
     document.getElementById('detTotalUsd').textContent = `$${totalUsd.toFixed(2)}`;
     document.getElementById('detTotalBs').textContent = fmtBs(totalBs);
   }
 
   async function ajustarItem(idProducto, delta) {
     toast('Actualizando...');
-    const res = await apiPost({
-      action: 'ajustar_item',
-      action_id: Date.now() + '_' + Math.random(),
-      id_mesa: state.mesaActivaId,
-      id_producto: idProducto,
-      delta: delta,
-      trabajador: state.trabajador
-    });
-    if (res.ok) {
-      state.mesas = res.mesas;
-      state.cuentas = res.cuentas;
-      renderTodo();
-    } else {
-      toast(res.error || 'Error al actualizar');
+    try {
+      const res = await apiPost({
+        action: 'ajustar_item',
+        action_id: Date.now() + '_' + Math.random(),
+        id_mesa: state.mesaActivaId,
+        id_producto: idProducto,
+        delta: delta,
+        trabajador: state.trabajador
+      });
+      if (res.ok) {
+        state.mesas = res.mesas;
+        state.cuentas = res.cuentas;
+        renderTodo();
+      } else {
+        toast(res.error || 'Error al actualizar');
+      }
+    } catch (e) {
+      toast('Error de conexión al actualizar');
     }
   }
 
@@ -660,50 +733,64 @@
     const pin = prompt('SEGURIDAD: Ingresa el PIN de Administrador para vaciar toda esta mesa (no se registrará como venta):');
     if (!pin) return;
     toast('Vaciando mesa...');
-    const res = await apiPost({
-      action: 'vaciar_mesa',
-      id_mesa: state.mesaActivaId,
-      pin: pin.trim(),
-      trabajador: state.trabajador
-    });
-    if (res.ok) {
-      state.mesas = res.mesas;
-      state.cuentas = res.cuentas;
-      toast('Mesa vaciada correctamente');
-      volverAMesas();
-    } else {
-      toast(res.error || 'PIN incorrecto');
+    try {
+      const res = await apiPost({
+        action: 'vaciar_mesa',
+        id_mesa: state.mesaActivaId,
+        pin: pin.trim(),
+        trabajador: state.trabajador
+      });
+      if (res.ok) {
+        state.mesas = res.mesas;
+        state.cuentas = res.cuentas;
+        toast('Mesa vaciada correctamente');
+        volverAMesas();
+      } else {
+        toast(res.error || 'PIN incorrecto');
+      }
+    } catch (e) {
+      toast('Error de conexión');
     }
   }
 
   async function guardarDatosMesa() {
-    const res = await apiPost({
-      action: 'actualizar_mesa',
-      id_mesa: state.mesaActivaId,
-      alias_cliente: document.getElementById('detAlias').value.trim(),
-      nota_interna: document.getElementById('detNota').value.trim(),
-      trabajador: state.trabajador
-    });
-    if (res.ok) {
-      state.mesas = res.mesas;
-      renderTodo();
-      toast('Datos guardados');
+    try {
+      const res = await apiPost({
+        action: 'actualizar_mesa',
+        id_mesa: state.mesaActivaId,
+        alias_cliente: document.getElementById('detAlias').value.trim(),
+        nota_interna: document.getElementById('detNota').value.trim(),
+        trabajador: state.trabajador
+      });
+      if (res.ok) {
+        state.mesas = res.mesas;
+        renderTodo();
+        toast('Datos guardados');
+      }
+    } catch (e) {
+      toast('Error guardando datos');
     }
   }
 
   async function cobrarMesa() {
     if (!confirm('¿Confirmas cobrar y liberar esta mesa?')) return;
     toast('Cobrando mesa...');
-    const res = await apiPost({
-      action: 'cobrar_mesa',
-      id_mesa: state.mesaActivaId,
-      trabajador: state.trabajador
-    });
-    if (res.ok) {
-      state.mesas = res.mesas;
-      state.cuentas = res.cuentas;
-      toast('Mesa cobrada y liberada');
-      volverAMesas();
+    try {
+      const res = await apiPost({
+        action: 'cobrar_mesa',
+        id_mesa: state.mesaActivaId,
+        trabajador: state.trabajador
+      });
+      if (res.ok) {
+        state.mesas = res.mesas;
+        state.cuentas = res.cuentas;
+        toast('Mesa cobrada y liberada');
+        volverAMesas();
+      } else {
+        toast(res.error || 'Error al cobrar');
+      }
+    } catch (e) {
+      toast('Error de conexión al cobrar');
     }
   }
 
@@ -716,17 +803,21 @@
   async function crearNuevaMesa() {
     const nombre = document.getElementById('nmNombre').value.trim();
     if (!nombre) return toast('Escribe un nombre');
-    const res = await apiPost({
-      action: 'nueva_cuenta',
-      nombre_mesa: nombre,
-      alias_cliente: document.getElementById('nmAlias').value.trim(),
-      trabajador: state.trabajador
-    });
-    if (res.ok) {
-      state.mesas = res.mesas;
-      cerrarModal('modalNuevaMesa');
-      renderTodo();
-      toast('Mesa creada');
+    try {
+      const res = await apiPost({
+        action: 'nueva_cuenta',
+        nombre_mesa: nombre,
+        alias_cliente: document.getElementById('nmAlias').value.trim(),
+        trabajador: state.trabajador
+      });
+      if (res.ok) {
+        state.mesas = res.mesas;
+        cerrarModal('modalNuevaMesa');
+        renderTodo();
+        toast('Mesa creada');
+      }
+    } catch (e) {
+      toast('Error creando mesa');
     }
   }
 
@@ -742,51 +833,61 @@
   function descargarQRHD() {
     const mesa = state.mesas.find(m => m.id_mesa === state.mesaActivaId);
     const img = document.getElementById('qrImg');
-    const canvas = document.createElement('canvas');
-    canvas.width = 1000; canvas.height = 1250;
-    const ctx = canvas.getContext('2d');
+    if (!img.complete || !img.naturalWidth) return toast('Espera un segundo a que cargue el QR');
 
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 1000, 1250);
-    ctx.fillStyle = '#111827';
-    ctx.font = 'bold 48px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('LICORERÍA LA JOYA', 500, 95);
-    ctx.fillStyle = '#d97706';
-    ctx.font = 'bold 68px sans-serif';
-    ctx.fillText(mesa.nombre_mesa.toUpperCase(), 500, 180);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1000; canvas.height = 1250;
+      const ctx = canvas.getContext('2d');
 
-    ctx.drawImage(img, 100, 230, 800, 800);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 1000, 1250);
+      ctx.fillStyle = '#111827';
+      ctx.font = 'bold 48px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('LICORERÍA LA JOYA', 500, 95);
+      ctx.fillStyle = '#d97706';
+      ctx.font = 'bold 68px sans-serif';
+      ctx.fillText(mesa.nombre_mesa.toUpperCase(), 500, 180);
 
-    ctx.fillStyle = '#374151';
-    ctx.font = 'bold 34px sans-serif';
-    ctx.fillText('Escanea para ver tu cuenta en vivo', 500, 1130);
+      ctx.drawImage(img, 100, 230, 800, 800);
 
-    const a = document.createElement('a');
-    a.download = `QR_${mesa.nombre_mesa.replace(/\s+/g, '_')}.png`;
-    a.href = canvas.toDataURL('image/png');
-    a.click();
+      ctx.fillStyle = '#374151';
+      ctx.font = 'bold 34px sans-serif';
+      ctx.fillText('Escanea para ver tu cuenta en vivo', 500, 1130);
+
+      const a = document.createElement('a');
+      a.download = `QR_${mesa.nombre_mesa.replace(/\s+/g, '_')}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    } catch (e) {
+      toast('Error generando imagen QR');
+    }
   }
 
   async function abrirHistorial() {
     document.getElementById('modalHistorial').classList.replace('hidden', 'flex');
     document.getElementById('listaHistorial').innerHTML = '<p class="text-slate-400 text-sm">Cargando...</p>';
-    const data = await apiGet('historial');
-    if (data.ok) {
-      document.getElementById('histResumen').textContent = `${data.cantidad} ventas · Total: $${data.total_usd.toFixed(2)} (${fmtBs(data.total_bs)})`;
-      document.getElementById('listaHistorial').innerHTML = (data.ventas || []).map(v => `
-        <div class="bg-slate-800/70 border border-slate-700 p-3 rounded-xl flex justify-between gap-3">
-          <div>
-            <div class="font-bold text-white text-sm">${v.mesa} ${v.alias_cliente ? '· ' + v.alias_cliente : ''}</div>
-            <div class="text-xs text-slate-400">${v.fecha_hora} · Cobró: ${v.cobrado_por}</div>
-            <div class="text-xs text-slate-300 mt-1">${v.detalle}</div>
+    try {
+      const data = await apiGet('historial');
+      if (data.ok) {
+        document.getElementById('histResumen').textContent = `${data.cantidad} ventas · Total: $${Number(data.total_usd || 0).toFixed(2)} (${fmtBs(data.total_bs)})`;
+        document.getElementById('listaHistorial').innerHTML = (data.ventas || []).map(v => `
+          <div class="bg-slate-800/70 border border-slate-700 p-3 rounded-xl flex justify-between gap-3">
+            <div>
+              <div class="font-bold text-white text-sm">${v.mesa} ${v.alias_cliente ? '· ' + v.alias_cliente : ''}</div>
+              <div class="text-xs text-slate-400">${v.fecha_hora} · Cobró: ${v.cobrado_por}</div>
+              <div class="text-xs text-slate-300 mt-1">${v.detalle}</div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="font-bold text-amber-400">$${Number(v.total_usd || 0).toFixed(2)}</div>
+              <div class="text-xs text-slate-300">${fmtBs(v.total_bs)}</div>
+            </div>
           </div>
-          <div class="text-right shrink-0">
-            <div class="font-bold text-amber-400">$${v.total_usd.toFixed(2)}</div>
-            <div class="text-xs text-slate-300">${fmtBs(v.total_bs)}</div>
-          </div>
-        </div>
-      `).join('') || '<p class="text-slate-500 text-center py-6">No hay ventas registradas.</p>';
+        `).join('') || '<p class="text-slate-500 text-center py-6">No hay ventas registradas.</p>';
+      }
+    } catch (e) {
+      document.getElementById('listaHistorial').innerHTML = '<p class="text-red-400 text-sm">Error cargando historial.</p>';
     }
   }
 
@@ -795,7 +896,8 @@
     if (state.pin) {
       document.getElementById('adminPinBox').classList.add('hidden');
       document.getElementById('adminContent').classList.remove('hidden');
-      document.getElementById('admTasa').value = state.config.tasa_bs;
+      document.getElementById('admTasa').value = getTasaActiva();
+      actualizarIndicadorBCV();
       renderAdminListas();
     } else {
       document.getElementById('inputPin').value = '';
@@ -806,21 +908,27 @@
 
   async function validarAdmin() {
     const pin = document.getElementById('inputPin').value.trim();
-    const res = await apiPost({ action: 'validar_admin', pin });
-    if (res.ok) {
-      state.pin = pin;
-      state.productosAdmin = res.productos_admin || [];
-      document.getElementById('adminPinBox').classList.add('hidden');
-      document.getElementById('adminContent').classList.remove('hidden');
-      document.getElementById('admTasa').value = state.config.tasa_bs;
-      renderAdminListas();
-      if (state.codigoPendienteNuevo) {
-        const cod = state.codigoPendienteNuevo;
-        state.codigoPendienteNuevo = '';
-        prepararNuevoProducto(cod);
+    if (!pin) return toast('Ingresa el PIN');
+    try {
+      const res = await apiPost({ action: 'validar_admin', pin });
+      if (res.ok) {
+        state.pin = pin;
+        state.productosAdmin = res.productos_admin || [];
+        document.getElementById('adminPinBox').classList.add('hidden');
+        document.getElementById('adminContent').classList.remove('hidden');
+        document.getElementById('admTasa').value = getTasaActiva();
+        actualizarIndicadorBCV();
+        renderAdminListas();
+        if (state.codigoPendienteNuevo) {
+          const cod = state.codigoPendienteNuevo;
+          state.codigoPendienteNuevo = '';
+          prepararNuevoProducto(cod);
+        }
+      } else {
+        toast(res.error || 'PIN incorrecto');
       }
-    } else {
-      toast(res.error || 'PIN incorrecto');
+    } catch (e) {
+      toast('Error validando PIN');
     }
   }
 
@@ -828,10 +936,10 @@
     document.getElementById('listaProdAdmin').innerHTML = state.productosAdmin.map(p => `
       <div class="py-2 flex justify-between items-center text-sm">
         <div>
-          <strong class="text-white">${p.nombre}</strong> <span class="text-amber-400">$${p.precio_usd.toFixed(2)}</span>
+          <strong class="text-white">${p.nombre}</strong> <span class="text-amber-400">$${Number(p.precio_usd || 0).toFixed(2)}</span>
           <span class="text-xs text-slate-400 ml-2">${p.categoria} · ${p.activo === 'SI' ? 'Activo' : 'Inactivo'} ${p.codigo_barra ? '· Cod: ' + p.codigo_barra : ''}</span>
         </div>
-        <button onclick='editarProd(${JSON.stringify(p)})' class="text-xs bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded">Editar</button>
+        <button onclick="editarProdPorId('${esc(p.id_producto)}')" class="text-xs bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded">Editar</button>
       </div>
     `).join('');
 
@@ -839,24 +947,27 @@
       <div class="bg-slate-900 border border-slate-700 p-2.5 rounded-lg flex justify-between items-center text-sm">
         <span><strong>${m.nombre_mesa}</strong> <small class="text-slate-500">(ID: ${m.id_mesa})</small></span>
         <div class="flex gap-1.5">
-          <button onclick="renombrarMesa('${m.id_mesa}', '${esc(m.nombre_mesa)}')" class="text-xs bg-slate-700 px-2 py-1 rounded">Renombrar</button>
-          <button onclick="eliminarMesa('${m.id_mesa}', '${esc(m.nombre_mesa)}')" class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Eliminar</button>
+          <button onclick="renombrarMesa('${esc(m.id_mesa)}', '${esc(m.nombre_mesa)}')" class="text-xs bg-slate-700 px-2 py-1 rounded">Renombrar</button>
+          <button onclick="eliminarMesa('${esc(m.id_mesa)}', '${esc(m.nombre_mesa)}')" class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Eliminar</button>
         </div>
       </div>
     `).join('');
   }
 
-  function editarProd(p) {
+  function editarProdPorId(idProd) {
+    const p = state.productosAdmin.find(x => String(x.id_producto) === String(idProd));
+    if (!p) return;
     document.getElementById('tituloFormProd').textContent = 'Editar Producto';
     document.getElementById('pId').value = p.id_producto;
-    document.getElementById('pNombre').value = p.nombre;
-    document.getElementById('pCategoria').value = p.categoria;
-    document.getElementById('pPrecio').value = p.precio_usd;
-    document.getElementById('pUCombo').value = p.unidades_combo;
-    document.getElementById('pPCombo').value = p.precio_combo_usd;
+    document.getElementById('pNombre').value = p.nombre || '';
+    document.getElementById('pCategoria').value = p.categoria || '';
+    document.getElementById('pPrecio').value = p.precio_usd || '';
+    document.getElementById('pUCombo').value = p.unidades_combo || '';
+    document.getElementById('pPCombo').value = p.precio_combo_usd || '';
     document.getElementById('pCodigo').value = p.codigo_barra || '';
     document.getElementById('pActivo').value = p.activo || 'SI';
     document.getElementById('pImagenUrl').value = p.imagen_url || '';
+    document.getElementById('boxFormProducto').scrollIntoView({ behavior: 'smooth' });
   }
 
   function limpiarFormProd() {
@@ -872,18 +983,22 @@
     btn.disabled = true; btn.textContent = 'Subiendo foto...';
     const reader = new FileReader();
     reader.onload = async () => {
-      const res = await apiPost({
-        action: 'subir_imagen',
-        pin: state.pin,
-        imagen_base64: reader.result,
-        mime_type: file.type,
-        nombre_archivo: file.name
-      });
-      if (res.ok) {
-        document.getElementById('pImagenUrl').value = res.imagen_url;
-        toast('Foto subida a Drive');
-      } else {
-        toast(res.error || 'Error subiendo foto');
+      try {
+        const res = await apiPost({
+          action: 'subir_imagen',
+          pin: state.pin,
+          imagen_base64: reader.result,
+          mime_type: file.type,
+          nombre_archivo: file.name
+        });
+        if (res.ok) {
+          document.getElementById('pImagenUrl').value = res.imagen_url;
+          toast('Foto subida a Drive');
+        } else {
+          toast(res.error || 'Error subiendo foto');
+        }
+      } catch (err) {
+        toast('Error de conexión subiendo foto');
       }
       btn.disabled = false; btn.textContent = 'Guardar Producto';
     };
@@ -895,53 +1010,82 @@
     const precio = parseFloat(document.getElementById('pPrecio').value);
     if (!nombre || isNaN(precio) || precio <= 0) return toast('Completa Nombre y Precio USD');
 
-    const res = await apiPost({
-      action: 'guardar_producto',
-      pin: state.pin,
-      id_producto: document.getElementById('pId').value.trim(),
-      nombre: nombre,
-      categoria: document.getElementById('pCategoria').value.trim() || 'Otros',
-      precio_usd: precio,
-      unidades_combo: document.getElementById('pUCombo').value,
-      precio_combo_usd: document.getElementById('pPCombo').value,
-      codigo_barra: document.getElementById('pCodigo').value.trim(),
-      activo: document.getElementById('pActivo').value,
-      imagen_url: document.getElementById('pImagenUrl').value.trim()
-    });
-    if (res.ok) {
-      state.productos = res.productos;
-      state.productosAdmin = res.productos_admin;
-      limpiarFormProd();
-      renderAdminListas();
-      renderTodo();
-      toast('Producto guardado en Google Sheets');
-    } else {
-      toast(res.error || 'Error guardando');
+    try {
+      const res = await apiPost({
+        action: 'guardar_producto',
+        pin: state.pin,
+        id_producto: document.getElementById('pId').value.trim(),
+        nombre: nombre,
+        categoria: document.getElementById('pCategoria').value.trim() || 'Otros',
+        precio_usd: precio,
+        unidades_combo: document.getElementById('pUCombo').value,
+        precio_combo_usd: document.getElementById('pPCombo').value,
+        codigo_barra: document.getElementById('pCodigo').value.trim(),
+        activo: document.getElementById('pActivo').value,
+        imagen_url: document.getElementById('pImagenUrl').value.trim()
+      });
+      if (res.ok) {
+        state.productos = res.productos;
+        state.productosAdmin = res.productos_admin;
+        limpiarFormProd();
+        renderAdminListas();
+        renderTodo();
+        toast('Producto guardado en Google Sheets');
+      } else {
+        toast(res.error || 'Error guardando');
+      }
+    } catch (e) {
+      toast('Error de conexión al guardar');
     }
   }
 
   async function actualizarTasa() {
-    const res = await apiPost({ action: 'actualizar_tasa', pin: state.pin, tasa_bs: document.getElementById('admTasa').value });
-    if (res.ok) { state.config = res.config; renderTodo(); toast('Tasa actualizada'); }
+    const val = parseFloat(document.getElementById('admTasa').value);
+    if (isNaN(val) || val <= 0) return toast('Ingresa una tasa válida mayor a 0');
+    try {
+      const res = await apiPost({ action: 'actualizar_tasa', pin: state.pin, tasa_bs: val });
+      if (res.ok) {
+        state.config = res.config;
+        renderTodo();
+        toast(`Tasa actualizada a ${val.toFixed(2)} Bs en todo el sistema`);
+      } else {
+        toast(res.error || 'Error actualizando tasa');
+      }
+    } catch (e) {
+      toast('Error de conexión al actualizar tasa');
+    }
   }
 
   async function limpiarHistorial() {
     if (!confirm('¿Seguro que deseas borrar todo el historial de ventas?')) return;
-    const res = await apiPost({ action: 'limpiar_historial', pin: state.pin });
-    if (res.ok) toast('Historial limpiado');
+    try {
+      const res = await apiPost({ action: 'limpiar_historial', pin: state.pin });
+      if (res.ok) toast('Historial limpiado');
+      else toast(res.error || 'Error limpiando historial');
+    } catch (e) {
+      toast('Error de conexión');
+    }
   }
 
   async function renombrarMesa(id, actual) {
     const nuevo = prompt('Nuevo nombre para ' + actual, actual);
     if (!nuevo) return;
-    const res = await apiPost({ action: 'renombrar_mesa', pin: state.pin, id_mesa: id, nombre_mesa: nuevo, trabajador: state.trabajador });
-    if (res.ok) { state.mesas = res.mesas; renderAdminListas(); renderTodo(); toast('Mesa renombrada'); }
+    try {
+      const res = await apiPost({ action: 'renombrar_mesa', pin: state.pin, id_mesa: id, nombre_mesa: nuevo, trabajador: state.trabajador });
+      if (res.ok) { state.mesas = res.mesas; renderAdminListas(); renderTodo(); toast('Mesa renombrada'); }
+    } catch (e) {
+      toast('Error renombrando mesa');
+    }
   }
 
   async function eliminarMesa(id, nombre) {
     if (!confirm(`¿Eliminar ${nombre}? (Si ya imprimiste su QR dejará de funcionar)`)) return;
-    const res = await apiPost({ action: 'eliminar_mesa', pin: state.pin, id_mesa: id });
-    if (res.ok) { state.mesas = res.mesas; state.cuentas = res.cuentas; renderAdminListas(); renderTodo(); toast('Mesa eliminada'); }
+    try {
+      const res = await apiPost({ action: 'eliminar_mesa', pin: state.pin, id_mesa: id });
+      if (res.ok) { state.mesas = res.mesas; state.cuentas = res.cuentas; renderAdminListas(); renderTodo(); toast('Mesa eliminada'); }
+    } catch (e) {
+      toast('Error eliminando mesa');
+    }
   }
 
   function cerrarModal(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
@@ -968,7 +1112,7 @@
     const tag = document.activeElement ? document.activeElement.tagName : '';
     const idAct = document.activeElement ? document.activeElement.id : '';
     if (tag === 'TEXTAREA' || tag === 'SELECT') return;
-    if (tag === 'INPUT' && idAct !== 'buscadorProd') return;
+    if (tag === 'INPUT') return; // buscadorProd ya tiene su propio manejarEnterBuscador
     if (e.ctrlKey || e.altKey || e.metaKey) return;
 
     if (e.key === 'Enter') {
@@ -976,10 +1120,6 @@
         const code = _scanBuffer.trim();
         _scanBuffer = '';
         e.preventDefault();
-        if (idAct === 'buscadorProd') {
-          document.getElementById('buscadorProd').value = '';
-          renderCatalogo();
-        }
         procesarCodigoPistola(code);
       }
       return;
