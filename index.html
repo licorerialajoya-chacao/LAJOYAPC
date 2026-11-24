@@ -33,9 +33,11 @@
   <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-30">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <img src="https://i.ibb.co/gLJsFsnX/logojoya.png" class="w-10 h-10 bg-white rounded-lg p-1 object-contain" />
+        <button onclick="volverAMesas()" title="Ir al inicio (Mesas)" class="flex items-center gap-3 text-left group">
+          <img src="https://i.ibb.co/gLJsFsnX/logojoya.png" class="w-10 h-10 bg-white rounded-lg p-1 object-contain group-hover:ring-2 group-hover:ring-amber-400 transition" />
+        </button>
         <div>
-          <h1 class="font-bold text-amber-400 leading-tight text-lg">Licorería La Joya</h1>
+          <h1 onclick="volverAMesas()" class="font-bold text-amber-400 leading-tight text-lg cursor-pointer hover:text-amber-300">Licorería La Joya</h1>
           <div class="text-xs text-slate-400 flex flex-wrap items-center gap-2">
             <span>Turno: <strong id="lblTrabajador" class="text-white"></strong></span>
             <span>•</span>
@@ -45,10 +47,22 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <!-- BUSCADOR RÁPIDO DE MESAS -->
+      <div id="boxBuscadorMesa" class="relative flex-1 min-w-[200px] max-w-xs">
+        <input id="inputBuscadorMesa" type="text" autocomplete="off"
+          placeholder="🔍 Buscar mesa o cliente..."
+          onfocus="renderBuscadorMesas()"
+          oninput="renderBuscadorMesas()"
+          onkeydown="manejarEnterBuscadorMesa(event)"
+          class="w-full bg-slate-800 border border-slate-700 focus:border-amber-400 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none" />
+        <div id="dropdownMesas" class="hidden absolute left-0 right-0 mt-1.5 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-h-72 overflow-y-auto z-50 divide-y divide-slate-800"></div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
         <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400" title="Sincronizado en vivo"></span>
+        <button onclick="volverAMesas()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">🏠 Inicio</button>
         <button onclick="abrirModalNuevaMesa()" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-3 py-2 rounded-lg text-sm">+ Nueva Mesa</button>
-        <button onclick="abrirHistorial()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-3 py-2 rounded-lg text-sm">Historial</button>
+        <button onclick="abrirHistorial()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">📊 Ventas</button>
         <button onclick="abrirAdmin()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 px-3 py-2 rounded-lg text-sm font-semibold">Admin</button>
         <button onclick="cambiarTurno()" class="text-slate-400 hover:text-white text-xs px-2 py-2">Salir</button>
       </div>
@@ -154,17 +168,33 @@
     </div>
   </div>
 
-  <!-- MODAL HISTORIAL -->
+  <!-- MODAL VENTAS / HISTORIAL -->
   <div id="modalHistorial" class="fixed inset-0 z-40 bg-black/80 hidden items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-3xl max-h-[85vh] flex flex-col">
-      <div class="flex justify-between items-center mb-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-4xl max-h-[88vh] flex flex-col">
+      <div class="flex flex-wrap justify-between items-start gap-3 mb-4 border-b border-slate-800 pb-3">
         <div>
-          <h3 class="text-xl font-bold text-amber-400">Historial de Ventas</h3>
-          <p id="histResumen" class="text-sm text-slate-300"></p>
+          <h3 class="text-xl font-bold text-amber-400">Ventas del Día / Historial</h3>
+          <p id="histResumen" class="text-sm text-slate-300 mt-0.5"></p>
         </div>
-        <button onclick="cerrarModal('modalHistorial')" class="bg-slate-800 px-3 py-1.5 rounded-lg text-sm">Cerrar</button>
+        <div class="flex items-center gap-2">
+          <button onclick="limpiarHistorialConPin()" class="bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 px-3 py-1.5 rounded-lg text-sm font-bold">🗑️ Reiniciar / Borrar Día</button>
+          <button onclick="cerrarModal('modalHistorial')" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-sm">Cerrar</button>
+        </div>
       </div>
-      <div id="listaHistorial" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+
+      <div class="flex-1 overflow-y-auto space-y-5 pr-1">
+        <!-- RESUMEN POR MESA -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Total vendido por mesa</h4>
+          <div id="resumenPorMesa" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5"></div>
+        </div>
+
+        <!-- DETALLE DE TODAS LAS VENTAS -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Detalle de todas las ventas del día</h4>
+          <div id="listaHistorial" class="space-y-2"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -281,6 +311,14 @@
     return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   }
 
+  function escHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&')
+      .replace(/</g, '<')
+      .replace(/>/g, '>')
+      .replace(/"/g, '"');
+  }
+
   function fmtBs(val) {
     return Number(val || 0).toLocaleString('en-US', {
       minimumFractionDigits: 2,
@@ -377,7 +415,7 @@
         }
         renderTodo();
         setInterval(syncVivo, 7000);
-        setInterval(consultarTasaBCV, 900000); // Revisa BCV cada 15 min
+        setInterval(consultarTasaBCV, 900000);
       }
     } catch (e) {
       toast('Error conectando con el servidor');
@@ -396,7 +434,6 @@
         state.mesas = data.mesas || [];
         state.cuentas = data.cuentas || [];
 
-        // Si Admin está abierto y el usuario no está escribiendo en admTasa, actualiza el valor visible
         const admTasaEl = document.getElementById('admTasa');
         if (admTasaEl && document.activeElement !== admTasaEl) {
           admTasaEl.value = getTasaActiva();
@@ -410,7 +447,7 @@
   function renderTrabajadoresLogin() {
     const cont = document.getElementById('listaTrabajadores');
     cont.innerHTML = (state.config.trabajadores || []).map(t =>
-      `<button onclick="document.getElementById('inputTrabajador').value='${esc(t)}'; iniciarTurno();" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-1.5 rounded-full text-slate-200">${t}</button>`
+      `<button onclick="document.getElementById('inputTrabajador').value='${esc(t)}'; iniciarTurno();" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-1.5 rounded-full text-slate-200">${escHtml(t)}</button>`
     ).join('');
   }
 
@@ -448,6 +485,80 @@
     if (state.mesaActivaId) renderDetalleMesa();
   }
 
+  // BUSCADOR RÁPIDO DE MESAS EN EL HEADER
+  function filtrarMesasRapido(q) {
+    const texto = String(q || '').trim().toLowerCase();
+    return state.mesas.filter(m =>
+      !texto ||
+      String(m.nombre_mesa || '').toLowerCase().includes(texto) ||
+      String(m.alias_cliente || '').toLowerCase().includes(texto) ||
+      String(m.nota_interna || '').toLowerCase().includes(texto)
+    );
+  }
+
+  function renderBuscadorMesas() {
+    const inp = document.getElementById('inputBuscadorMesa');
+    const dd = document.getElementById('dropdownMesas');
+    const filtradas = filtrarMesasRapido(inp.value);
+
+    if (filtradas.length === 0) {
+      dd.innerHTML = '<div class="px-3 py-2.5 text-xs text-slate-400">No se encontró ninguna mesa</div>';
+    } else {
+      dd.innerHTML = filtradas.map(m => {
+        const tot = getTotalMesa(m.id_mesa);
+        const isOcupada = m.estado === 'OCUPADA' || tot.usd > 0;
+        const tieneNota = m.nota_interna && String(m.nota_interna).trim() !== '';
+        return `
+          <button type="button" onclick="seleccionarMesaRapida('${esc(m.id_mesa)}')"
+            class="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center justify-between gap-2 transition">
+            <div class="min-w-0">
+              <div class="font-bold text-sm text-white truncate flex items-center gap-1.5">
+                <span>🪑 ${escHtml(m.nombre_mesa)}</span>
+                ${tieneNota ? '<span class="text-[10px] bg-amber-400/20 text-amber-300 border border-amber-400/50 px-1.5 py-0.2 rounded">📝 Nota</span>' : ''}
+              </div>
+              <div class="text-xs text-slate-400 truncate">${escHtml(m.alias_cliente || 'Sin cliente')}</div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-xs font-bold ${isOcupada ? 'text-amber-400' : 'text-emerald-400'}">$${tot.usd.toFixed(2)}</div>
+              <div class="text-[10px] ${isOcupada ? 'text-red-400' : 'text-slate-500'}">${isOcupada ? 'OCUPADA' : 'LIBRE'}</div>
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+    dd.classList.remove('hidden');
+  }
+
+  function seleccionarMesaRapida(idMesa) {
+    document.getElementById('inputBuscadorMesa').value = '';
+    document.getElementById('dropdownMesas').classList.add('hidden');
+    abrirMesa(idMesa);
+  }
+
+  function manejarEnterBuscadorMesa(e) {
+    if (e.key === 'Escape') {
+      document.getElementById('dropdownMesas').classList.add('hidden');
+      e.target.blur();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const filtradas = filtrarMesasRapido(e.target.value);
+      if (filtradas.length > 0) {
+        seleccionarMesaRapida(filtradas[0].id_mesa);
+      } else {
+        toast('No se encontró esa mesa');
+      }
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const box = document.getElementById('boxBuscadorMesa');
+    if (box && !box.contains(e.target)) {
+      document.getElementById('dropdownMesas').classList.add('hidden');
+    }
+  });
+
   function renderMesas() {
     const grid = document.getElementById('gridMesas');
     let ocupadas = 0, totalCalle = 0;
@@ -455,17 +566,26 @@
     grid.innerHTML = state.mesas.map(m => {
       const tot = getTotalMesa(m.id_mesa);
       const isOcupada = m.estado === 'OCUPADA' || tot.usd > 0;
+      const notaLimpia = String(m.nota_interna || '').trim();
       if (isOcupada) { ocupadas++; totalCalle += tot.usd; }
       return `
         <div onclick="abrirMesa('${esc(m.id_mesa)}')" class="cursor-pointer bg-slate-900 hover:bg-slate-800/90 border ${isOcupada ? 'border-amber-400/60' : 'border-slate-800'} rounded-xl p-3.5 transition flex flex-col justify-between">
-          <div class="flex justify-between items-start gap-2 mb-2">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">🪑</span>
-              <h3 class="font-bold text-white text-base leading-tight">${m.nombre_mesa}</h3>
+          <div>
+            <div class="flex justify-between items-start gap-2 mb-1.5">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-xl shrink-0">🪑</span>
+                <h3 class="font-bold text-white text-base leading-tight truncate">${escHtml(m.nombre_mesa)}</h3>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${isOcupada ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}">${isOcupada ? 'OCUPADA' : 'LIBRE'}</span>
             </div>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${isOcupada ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}">${isOcupada ? 'OCUPADA' : 'LIBRE'}</span>
+            <p class="text-xs text-slate-400 truncate mb-2">${escHtml(m.alias_cliente || 'Sin cliente')}</p>
+            ${notaLimpia ? `
+              <div class="mb-2 bg-yellow-400/20 border border-yellow-400/70 text-yellow-200 rounded-lg px-2 py-1 text-[11px] font-semibold flex items-start gap-1">
+                <span class="shrink-0">📝</span>
+                <span class="break-words leading-snug">${escHtml(notaLimpia)}</span>
+              </div>
+            ` : ''}
           </div>
-          <p class="text-xs text-slate-400 truncate mb-2">${m.alias_cliente || 'Sin cliente'}</p>
           <div class="border-t border-slate-800 pt-2">
             <div class="text-lg font-bold ${isOcupada ? 'text-amber-400' : 'text-slate-500'}">$${tot.usd.toFixed(2)}</div>
             <div class="text-xs font-medium text-slate-300">${fmtBs(tot.bs)}</div>
@@ -480,6 +600,7 @@
 
   function abrirMesa(idMesa) {
     state.mesaActivaId = idMesa;
+    document.getElementById('dropdownMesas').classList.add('hidden');
     document.getElementById('vistaMesas').classList.add('hidden');
     document.getElementById('vistaDetalleMesa').classList.remove('hidden');
     const mesa = state.mesas.find(m => m.id_mesa === idMesa);
@@ -494,6 +615,7 @@
   function volverAMesas() {
     state.mesaActivaId = null;
     state.editandoCantidad = false;
+    document.getElementById('dropdownMesas').classList.add('hidden');
     document.getElementById('vistaDetalleMesa').classList.add('hidden');
     document.getElementById('vistaMesas').classList.remove('hidden');
     renderMesas();
@@ -502,7 +624,7 @@
   function renderCategorias() {
     const cats = ['Todos', ...new Set(state.productos.map(p => p.categoria || 'Otros'))];
     document.getElementById('filtroCategorias').innerHTML = cats.map(c =>
-      `<button onclick="state.categoriaActiva='${esc(c)}'; renderCategorias(); renderCatalogo();" class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${state.categoriaActiva === c ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">${c}</button>`
+      `<button onclick="state.categoriaActiva='${esc(c)}'; renderCategorias(); renderCatalogo();" class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${state.categoriaActiva === c ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">${escHtml(c)}</button>`
     ).join('');
   }
 
@@ -543,7 +665,7 @@
           <div class="flex gap-2.5 items-center">
             <img src="${img}" class="w-11 h-11 rounded-lg object-cover bg-white shrink-0" />
             <div class="min-w-0 flex-1">
-              <div class="font-bold text-sm text-white truncate">${p.nombre}</div>
+              <div class="font-bold text-sm text-white truncate">${escHtml(p.nombre)}</div>
               <div class="text-xs"><span class="text-amber-400 font-bold">$${pUsd.toFixed(2)}</span> <span class="text-slate-300">· ${fmtBs(precioBs)}</span></div>
               ${p.unidades_combo > 1 && p.precio_combo_usd > 0 ? `<div class="text-[11px] text-sky-400 font-medium">Combo x${p.unidades_combo}: $${Number(p.precio_combo_usd).toFixed(2)}</div>` : ''}
             </div>
@@ -640,7 +762,7 @@
   function manejarEnterBuscador(e) {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    e.stopPropagation(); // Evita doble lectura con el listener global
+    e.stopPropagation();
     _scanBuffer = '';
 
     const q = e.target.value.trim();
@@ -680,8 +802,8 @@
         return `
           <div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2.5 flex justify-between items-center gap-2">
             <div class="min-w-0 flex-1">
-              <div class="font-bold text-sm text-white truncate">${prod.nombre}</div>
-              <div class="text-xs text-slate-400">${desc} · ${c.agregado_por} ${c.hora}</div>
+              <div class="font-bold text-sm text-white truncate">${escHtml(prod.nombre)}</div>
+              <div class="text-xs text-slate-400">${desc} · ${escHtml(c.agregado_por)} ${escHtml(c.hora)}</div>
             </div>
             <div class="flex items-center gap-2.5 shrink-0">
               <div class="text-right">
@@ -867,27 +989,72 @@
 
   async function abrirHistorial() {
     document.getElementById('modalHistorial').classList.replace('hidden', 'flex');
+    document.getElementById('histResumen').textContent = 'Cargando ventas...';
+    document.getElementById('resumenPorMesa').innerHTML = '';
     document.getElementById('listaHistorial').innerHTML = '<p class="text-slate-400 text-sm">Cargando...</p>';
+
     try {
       const data = await apiGet('historial');
       if (data.ok) {
-        document.getElementById('histResumen').textContent = `${data.cantidad} ventas · Total: $${Number(data.total_usd || 0).toFixed(2)} (${fmtBs(data.total_bs)})`;
-        document.getElementById('listaHistorial').innerHTML = (data.ventas || []).map(v => `
+        const ventas = data.ventas || [];
+        document.getElementById('histResumen').textContent = `${data.cantidad} venta(s) · Total del día: $${Number(data.total_usd || 0).toFixed(2)} (${fmtBs(data.total_bs)})`;
+
+        // Agrupar totales por mesa
+        const porMesa = {};
+        ventas.forEach(v => {
+          const nombre = v.mesa || 'Sin mesa';
+          if (!porMesa[nombre]) porMesa[nombre] = { mesa: nombre, cantidad: 0, usd: 0, bs: 0 };
+          porMesa[nombre].cantidad += 1;
+          porMesa[nombre].usd += Number(v.total_usd || 0);
+          porMesa[nombre].bs += Number(v.total_bs || 0);
+        });
+        const listaPorMesa = Object.values(porMesa).sort((a, b) => b.usd - a.usd);
+
+        document.getElementById('resumenPorMesa').innerHTML = listaPorMesa.length
+          ? listaPorMesa.map(m => `
+              <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3">
+                <div class="font-bold text-white text-sm truncate">🪑 ${escHtml(m.mesa)}</div>
+                <div class="text-[11px] text-slate-400 mb-1">${m.cantidad} cuenta(s) cobrada(s)</div>
+                <div class="font-bold text-amber-400 text-base">$${m.usd.toFixed(2)}</div>
+                <div class="text-xs text-slate-300">${fmtBs(m.bs)}</div>
+              </div>
+            `).join('')
+          : '<p class="text-slate-500 text-xs col-span-full">Aún no hay ventas por mesa hoy.</p>';
+
+        document.getElementById('listaHistorial').innerHTML = ventas.map(v => `
           <div class="bg-slate-800/70 border border-slate-700 p-3 rounded-xl flex justify-between gap-3">
             <div>
-              <div class="font-bold text-white text-sm">${v.mesa} ${v.alias_cliente ? '· ' + v.alias_cliente : ''}</div>
-              <div class="text-xs text-slate-400">${v.fecha_hora} · Cobró: ${v.cobrado_por}</div>
-              <div class="text-xs text-slate-300 mt-1">${v.detalle}</div>
+              <div class="font-bold text-white text-sm">${escHtml(v.mesa)} ${v.alias_cliente ? '· ' + escHtml(v.alias_cliente) : ''}</div>
+              <div class="text-xs text-slate-400">${escHtml(v.fecha_hora)} · Cobró: ${escHtml(v.cobrado_por)}</div>
+              <div class="text-xs text-slate-300 mt-1">${escHtml(v.detalle)}</div>
             </div>
             <div class="text-right shrink-0">
               <div class="font-bold text-amber-400">$${Number(v.total_usd || 0).toFixed(2)}</div>
               <div class="text-xs text-slate-300">${fmtBs(v.total_bs)}</div>
             </div>
           </div>
-        `).join('') || '<p class="text-slate-500 text-center py-6">No hay ventas registradas.</p>';
+        `).join('') || '<p class="text-slate-500 text-center py-6">No hay ventas registradas hoy.</p>';
       }
     } catch (e) {
       document.getElementById('listaHistorial').innerHTML = '<p class="text-red-400 text-sm">Error cargando historial.</p>';
+    }
+  }
+
+  async function limpiarHistorialConPin() {
+    const pin = prompt('SEGURIDAD: Ingresa el PIN de Administrador para reiniciar y borrar TODAS las ventas del día:');
+    if (!pin) return;
+    if (!confirm('¿Estás seguro? Se borrará todo el historial de ventas del día en Google Sheets.')) return;
+    toast('Reiniciando historial...');
+    try {
+      const res = await apiPost({ action: 'limpiar_historial', pin: pin.trim() });
+      if (res.ok) {
+        toast('Ventas del día reiniciadas correctamente');
+        abrirHistorial();
+      } else {
+        toast(res.error || 'PIN de Administrador incorrecto');
+      }
+    } catch (e) {
+      toast('Error de conexión al reiniciar historial');
     }
   }
 
@@ -936,8 +1103,8 @@
     document.getElementById('listaProdAdmin').innerHTML = state.productosAdmin.map(p => `
       <div class="py-2 flex justify-between items-center text-sm">
         <div>
-          <strong class="text-white">${p.nombre}</strong> <span class="text-amber-400">$${Number(p.precio_usd || 0).toFixed(2)}</span>
-          <span class="text-xs text-slate-400 ml-2">${p.categoria} · ${p.activo === 'SI' ? 'Activo' : 'Inactivo'} ${p.codigo_barra ? '· Cod: ' + p.codigo_barra : ''}</span>
+          <strong class="text-white">${escHtml(p.nombre)}</strong> <span class="text-amber-400">$${Number(p.precio_usd || 0).toFixed(2)}</span>
+          <span class="text-xs text-slate-400 ml-2">${escHtml(p.categoria)} · ${p.activo === 'SI' ? 'Activo' : 'Inactivo'} ${p.codigo_barra ? '· Cod: ' + escHtml(p.codigo_barra) : ''}</span>
         </div>
         <button onclick="editarProdPorId('${esc(p.id_producto)}')" class="text-xs bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded">Editar</button>
       </div>
@@ -945,7 +1112,7 @@
 
     document.getElementById('listaMesasAdmin').innerHTML = state.mesas.map(m => `
       <div class="bg-slate-900 border border-slate-700 p-2.5 rounded-lg flex justify-between items-center text-sm">
-        <span><strong>${m.nombre_mesa}</strong> <small class="text-slate-500">(ID: ${m.id_mesa})</small></span>
+        <span><strong>${escHtml(m.nombre_mesa)}</strong> <small class="text-slate-500">(ID: ${escHtml(m.id_mesa)})</small></span>
         <div class="flex gap-1.5">
           <button onclick="renombrarMesa('${esc(m.id_mesa)}', '${esc(m.nombre_mesa)}')" class="text-xs bg-slate-700 px-2 py-1 rounded">Renombrar</button>
           <button onclick="eliminarMesa('${esc(m.id_mesa)}', '${esc(m.nombre_mesa)}')" class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Eliminar</button>
@@ -1110,9 +1277,8 @@
     }
 
     const tag = document.activeElement ? document.activeElement.tagName : '';
-    const idAct = document.activeElement ? document.activeElement.id : '';
     if (tag === 'TEXTAREA' || tag === 'SELECT') return;
-    if (tag === 'INPUT') return; // buscadorProd ya tiene su propio manejarEnterBuscador
+    if (tag === 'INPUT') return;
     if (e.ctrlKey || e.altKey || e.metaKey) return;
 
     if (e.key === 'Enter') {
