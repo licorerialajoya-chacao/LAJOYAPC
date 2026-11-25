@@ -105,16 +105,16 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <!-- IZQUIERDA: CATÁLOGO DE PRODUCTOS -->
         <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col max-h-[75vh]">
-          <div class="flex gap-2 mb-3">
+          <div class="flex gap-2 mb-3 shrink-0">
             <input id="buscadorProd" type="text" placeholder="Buscar producto o pasar pistola láser + Enter..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" oninput="renderCatalogo()" onkeydown="manejarEnterBuscador(event)" />
           </div>
-          <div id="filtroCategorias" class="flex gap-2 overflow-x-auto pb-2 mb-3"></div>
-          <div id="listaCatalogo" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto pr-1"></div>
+          <div id="filtroCategorias" class="flex items-center gap-2 overflow-x-auto pb-2 mb-3 shrink-0"></div>
+          <div id="listaCatalogo" class="flex-1 min-h-0 grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto pr-1 content-start"></div>
         </div>
 
         <!-- DERECHA: CUENTA ACTIVA Y COBRO -->
         <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col max-h-[75vh]">
-          <div class="grid grid-cols-2 gap-2 mb-3">
+          <div class="grid grid-cols-2 gap-2 mb-3 shrink-0">
             <input id="detAlias" type="text" placeholder="Apodo del cliente" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" />
             <div class="flex gap-1">
               <input id="detNota" type="text" placeholder="Nota interna" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" />
@@ -122,10 +122,10 @@
             </div>
           </div>
 
-          <h3 class="text-sm font-bold text-slate-300 mb-2 border-b border-slate-800 pb-1">Consumo actual</h3>
-          <div id="listaConsumo" class="flex-1 overflow-y-auto space-y-2 pr-1 mb-3"></div>
+          <h3 class="text-sm font-bold text-slate-300 mb-2 border-b border-slate-800 pb-1 shrink-0">Consumo actual</h3>
+          <div id="listaConsumo" class="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1 mb-3"></div>
 
-          <div class="border-t border-slate-800 pt-3 mt-auto">
+          <div class="border-t border-slate-800 pt-3 mt-auto shrink-0">
             <div class="flex justify-between items-end mb-3">
               <span class="text-slate-400 text-sm">Total a pagar:</span>
               <div class="text-right">
@@ -624,7 +624,7 @@
   function renderCategorias() {
     const cats = ['Todos', ...new Set(state.productos.map(p => p.categoria || 'Otros'))];
     document.getElementById('filtroCategorias').innerHTML = cats.map(c =>
-      `<button onclick="state.categoriaActiva='${esc(c)}'; renderCategorias(); renderCatalogo();" class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${state.categoriaActiva === c ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">${escHtml(c)}</button>`
+      `<button onclick="state.categoriaActiva='${esc(c)}'; renderCategorias(); renderCatalogo();" class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap shrink-0 ${state.categoriaActiva === c ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">${escHtml(c)}</button>`
     ).join('');
   }
 
