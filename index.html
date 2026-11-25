@@ -398,7 +398,8 @@
     mesaActivaId: null,
     categoriaActiva: 'Todos',
     filtroTipoMesa: 'Todas',
-    editandoCantidad: false
+    editandoCantidad: false,
+    enviosPendientes: 0
   };
 
   function toast(msg) {
@@ -406,7 +407,7 @@
     el.textContent = msg;
     el.classList.remove('hidden');
     clearTimeout(window._toastT);
-    window._toastT = setTimeout(() => el.classList.add('hidden'), 3000);
+    window._toastT = setTimeout(() => el.classList.add('hidden'), 2400);
   }
 
   function esc(str) {
@@ -607,12 +608,12 @@
   }
 
   async function syncVivo() {
-    if (state.editandoCantidad) return;
+    if (state.editandoCantidad || state.enviosPendientes > 0) return;
     const dot = document.getElementById('syncDot');
     if (dot) dot.classList.replace('bg-emerald-400', 'bg-amber-400');
     try {
       const data = await apiGet('sync');
-      if (data.ok && !state.editandoCantidad) {
+      if (data.ok && !state.editandoCantidad && state.enviosPendientes === 0) {
         if (data.config) state.config = data.config;
         if (data.productos) state.productos = data.productos;
         state.mesas = data.mesas || [];
@@ -1066,26 +1067,85 @@
     document.getElementById('detTotalBs').textContent = fmtBs(totalBs);
   }
 
+  function obtenerHoraActual() {
+    return new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function aplicarCambioLocalItem(idMesa, idProducto, delta, trabajador, hora) {
+    const idx = state.cuentas.findIndex(c => c.id_mesa === idMesa && c.id_producto === idProducto);
+    if (idx >= 0) {
+      const nuevaCant = (Number(state.cuentas[idx].cantidad_unidades) || 0) + Number(delta);
+      if (nuevaCant <= 0) {
+        state.cuentas.splice(idx, 1);
+      } else {
+        state.cuentas[idx] = {
+          ...state.cuentas[idx],
+          cantidad_unidades: nuevaCant,
+          agregado_por: trabajador || state.cuentas[idx].agregado_por,
+          hora: hora || state.cuentas[idx].hora
+        };
+      }
+    } else if (delta > 0) {
+      state.cuentas.push({
+        id_mesa: idMesa,
+        id_producto: idProducto,
+        cantidad_unidades: Number(delta),
+        agregado_por: trabajador,
+        hora: hora
+      });
+    }
+
+    const tieneConsumo = state.cuentas.some(c => c.id_mesa === idMesa && (Number(c.cantidad_unidades) || 0) > 0);
+    const mIdx = state.mesas.findIndex(m => m.id_mesa === idMesa);
+    if (mIdx >= 0) {
+      state.mesas[mIdx] = {
+        ...state.mesas[mIdx],
+        estado: tieneConsumo ? 'OCUPADA' : 'LIBRE',
+        ultimo_trabajador: trabajador,
+        ultima_actualizacion: hora
+      };
+    }
+  }
+
   async function ajustarItem(idProducto, delta) {
-    toast('Actualizando...');
+    const idMesa = state.mesaActivaId;
+    const prevMesas = JSON.parse(JSON.stringify(state.mesas));
+    const prevCuentas = JSON.parse(JSON.stringify(state.cuentas));
+    const hora = obtenerHoraActual();
+
+    // Actualización optimista inmediata para que se sienta al instante
+    aplicarCambioLocalItem(idMesa, idProducto, delta, state.trabajador, hora);
+    renderTodo();
+
+    state.enviosPendientes++;
     try {
       const res = await apiPost({
         action: 'ajustar_item',
         action_id: Date.now() + '_' + Math.random(),
-        id_mesa: state.mesaActivaId,
+        id_mesa: idMesa,
         id_producto: idProducto,
         delta: delta,
         trabajador: state.trabajador
       });
       if (res.ok) {
-        state.mesas = res.mesas;
-        state.cuentas = res.cuentas;
-        renderTodo();
+        if (state.enviosPendientes <= 1) {
+          state.mesas = res.mesas;
+          state.cuentas = res.cuentas;
+          renderTodo();
+        }
       } else {
+        state.mesas = prevMesas;
+        state.cuentas = prevCuentas;
+        renderTodo();
         toast(res.error || 'Error al actualizar');
       }
     } catch (e) {
+      state.mesas = prevMesas;
+      state.cuentas = prevCuentas;
+      renderTodo();
       toast('Error de conexión al actualizar');
+    } finally {
+      state.enviosPendientes = Math.max(0, state.enviosPendientes - 1);
     }
   }
 
