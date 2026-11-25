@@ -6,10 +6,65 @@
   <title>Licorería La Joya - Panel PC</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      background-color: #070b14;
+      background-image:
+        radial-gradient(circle at 12% 0%, rgba(245, 158, 11, 0.10), transparent 38%),
+        radial-gradient(circle at 88% 12%, rgba(16, 185, 129, 0.08), transparent 36%),
+        radial-gradient(circle at 50% 100%, rgba(30, 41, 59, 0.35), transparent 55%);
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .glass-panel {
+      background: linear-gradient(180deg, rgba(17, 24, 39, 0.86) 0%, rgba(9, 13, 22, 0.94) 100%);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.65);
+    }
+    .glass-card-ocupada {
+      background: linear-gradient(160deg, rgba(45, 24, 10, 0.88) 0%, rgba(15, 13, 18, 0.96) 100%);
+      border: 1.5px solid rgba(245, 158, 11, 0.65);
+      box-shadow: 0 0 22px -6px rgba(245, 158, 11, 0.32), inset 0 1px 0 rgba(251, 191, 36, 0.18);
+    }
+    .glass-card-ocupada:hover {
+      border-color: rgba(251, 191, 36, 0.95);
+      box-shadow: 0 0 28px -4px rgba(245, 158, 11, 0.48), inset 0 1px 0 rgba(251, 191, 36, 0.25);
+      transform: translateY(-2px);
+    }
+    .glass-card-libre {
+      background: linear-gradient(160deg, rgba(10, 31, 28, 0.82) 0%, rgba(11, 16, 26, 0.96) 100%);
+      border: 1.5px solid rgba(16, 185, 129, 0.38);
+      box-shadow: 0 0 18px -8px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(52, 211, 153, 0.14);
+    }
+    .glass-card-libre:hover {
+      border-color: rgba(52, 211, 153, 0.78);
+      box-shadow: 0 0 24px -5px rgba(16, 185, 129, 0.40), inset 0 1px 0 rgba(52, 211, 153, 0.22);
+      transform: translateY(-2px);
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #090d16;
+      box-shadow: 0 6px 18px -4px rgba(245, 158, 11, 0.55);
+    }
+    .btn-gold:hover {
+      background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
+      box-shadow: 0 8px 22px -3px rgba(251, 191, 36, 0.65);
+    }
+    .input-obsidian {
+      background: rgba(9, 13, 22, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.20);
+      color: #f8fafc;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .input-obsidian:focus {
+      outline: none;
+      border-color: #fbbf24;
+      box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.18);
+    }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-track { background: #070b14; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 6px; }
     ::-webkit-scrollbar-thumb:hover { background: #475569; }
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { opacity: 1; }
@@ -18,31 +73,38 @@
 <body class="min-h-screen flex flex-col">
 
   <!-- LOGIN TRABAJADOR -->
-  <div id="loginScreen" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl">
-      <img src="https://i.ibb.co/gLJsFsnX/logojoya.png" alt="La Joya" class="w-24 h-24 mx-auto bg-white rounded-2xl p-2 mb-4 object-contain" />
-      <h1 class="text-2xl font-bold text-amber-400">Licorería La Joya</h1>
+  <div id="loginScreen" class="fixed inset-0 z-50 bg-[#050810]/95 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl p-8 w-full max-w-sm text-center border border-amber-400/25">
+      <div class="w-24 h-24 mx-auto bg-white rounded-2xl p-2 mb-4 shadow-lg ring-2 ring-amber-400/50">
+        <img src="https://i.ibb.co/gLJsFsnX/logojoya.png" alt="La Joya" class="w-full h-full object-contain" />
+      </div>
+      <h1 class="text-2xl font-extrabold text-amber-400 tracking-tight">Licorería La Joya</h1>
       <p class="text-slate-400 text-sm mt-1 mb-6">¿Quién está en turno?</p>
-      <input id="inputTrabajador" type="text" placeholder="Escribe tu nombre" onkeydown="if(event.key==='Enter') iniciarTurno()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-400 mb-3" />
-      <div id="listaTrabajadores" class="flex flex-wrap gap-2 justify-center mb-4"></div>
-      <button onclick="iniciarTurno()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-3 rounded-xl transition">Entrar al sistema</button>
+      <input id="inputTrabajador" type="text" placeholder="Escribe tu nombre" onkeydown="if(event.key==='Enter') iniciarTurno()" class="input-obsidian w-full rounded-xl px-4 py-3 mb-3 text-sm" />
+      <div id="listaTrabajadores" class="flex flex-wrap gap-2 justify-center mb-5"></div>
+      <button onclick="iniciarTurno()" class="btn-gold w-full font-extrabold py-3 rounded-xl transition">Entrar al sistema</button>
     </div>
   </div>
 
   <!-- HEADER -->
-  <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-30">
+  <header class="bg-[#090d16]/90 backdrop-blur-xl border-b border-slate-800/80 px-4 py-3 sticky top-0 z-30 shadow-lg">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <button onclick="volverAMesas()" title="Ir al inicio (Mesas)" class="flex items-center gap-3 text-left group">
-          <img src="https://i.ibb.co/gLJsFsnX/logojoya.png" class="w-10 h-10 bg-white rounded-lg p-1 object-contain group-hover:ring-2 group-hover:ring-amber-400 transition" />
+          <img src="https://i.ibb.co/gLJsFsnX/logojoya.png" class="w-11 h-11 bg-white rounded-xl p-1 object-contain ring-1 ring-amber-400/40 group-hover:ring-2 group-hover:ring-amber-400 transition shadow" />
         </button>
         <div>
-          <h1 onclick="volverAMesas()" class="font-bold text-amber-400 leading-tight text-lg cursor-pointer hover:text-amber-300">Licorería La Joya</h1>
-          <div class="text-xs text-slate-400 flex flex-wrap items-center gap-2">
-            <span>Turno: <strong id="lblTrabajador" class="text-white"></strong></span>
-            <span>•</span>
-            <span>Tasa activa: <strong id="lblTasa" class="text-emerald-400">0.00 Bs</strong></span>
-            <button id="btnAlertaBcv" onclick="abrirAdmin()" title="Tasa oficial BCV en tiempo real. Haz clic para gestionar en Admin" class="hidden bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 px-2 py-0.5 rounded text-[11px] font-semibold transition"></button>
+          <div class="flex items-center gap-2">
+            <h1 onclick="volverAMesas()" class="font-extrabold text-amber-400 leading-tight text-lg cursor-pointer hover:text-amber-300 tracking-tight">Licorería La Joya</h1>
+            <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-emerald-300">
+              <span id="syncDot" class="w-2 h-2 rounded-full bg-emerald-400" title="Sincronizado en vivo"></span>
+              En vivo
+            </span>
+          </div>
+          <div class="text-xs text-slate-400 flex flex-wrap items-center gap-2 mt-0.5">
+            <span class="bg-slate-800/80 border border-slate-700/80 px-2 py-0.5 rounded-full text-slate-200">👤 <strong id="lblTrabajador" class="text-white"></strong></span>
+            <span class="bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded-full text-amber-300 font-semibold">Tasa: <strong id="lblTasa">0.00 Bs</strong></span>
+            <button id="btnAlertaBcv" onclick="abrirAdmin()" title="Tasa oficial BCV en tiempo real. Haz clic para gestionar en Admin" class="hidden bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-2 py-0.5 rounded-full text-[11px] font-semibold transition"></button>
           </div>
         </div>
       </div>
@@ -54,17 +116,16 @@
           onfocus="renderBuscadorMesas()"
           oninput="renderBuscadorMesas()"
           onkeydown="manejarEnterBuscadorMesa(event)"
-          class="w-full bg-slate-800 border border-slate-700 focus:border-amber-400 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none" />
-        <div id="dropdownMesas" class="hidden absolute left-0 right-0 mt-1.5 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-h-72 overflow-y-auto z-50 divide-y divide-slate-800"></div>
+          class="input-obsidian w-full rounded-xl px-3.5 py-2 text-sm placeholder-slate-400" />
+        <div id="dropdownMesas" class="hidden absolute left-0 right-0 mt-1.5 glass-panel rounded-2xl shadow-2xl max-h-72 overflow-y-auto z-50 divide-y divide-slate-800/80 border border-slate-700/70"></div>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400" title="Sincronizado en vivo"></span>
-        <button onclick="volverAMesas()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">🏠 Inicio</button>
-        <button onclick="abrirModalNuevaMesa()" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-3 py-2 rounded-lg text-sm">+ Nueva Mesa</button>
-        <button onclick="abrirHistorial()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">📊 Ventas</button>
-        <button onclick="abrirAdmin()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 px-3 py-2 rounded-lg text-sm font-semibold">Admin</button>
-        <button onclick="cambiarTurno()" class="text-slate-400 hover:text-white text-xs px-2 py-2">Salir</button>
+        <button onclick="volverAMesas()" class="bg-slate-800/85 hover:bg-slate-700/90 border border-slate-700/80 text-white px-3.5 py-2 rounded-xl text-sm font-semibold transition">🏠 Inicio</button>
+        <button onclick="abrirModalNuevaMesa()" class="btn-gold font-extrabold px-3.5 py-2 rounded-xl text-sm transition">+ Nueva Cuenta</button>
+        <button onclick="abrirHistorial()" class="bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 px-3.5 py-2 rounded-xl text-sm font-semibold transition">📊 Ventas</button>
+        <button onclick="abrirAdmin()" class="bg-slate-800/85 hover:bg-slate-700/90 border border-amber-400/35 text-amber-400 px-3.5 py-2 rounded-xl text-sm font-semibold transition">🔒 Admin</button>
+        <button onclick="cambiarTurno()" class="text-slate-400 hover:text-white text-xs px-2 py-2 transition">Salir</button>
       </div>
     </div>
   </header>
@@ -74,66 +135,86 @@
 
     <!-- VISTA MESAS -->
     <section id="vistaMesas">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold text-white">Mesas y Barras</h2>
-        <div class="text-sm text-slate-400">
-          Ocupadas: <strong id="cntOcupadas" class="text-amber-400">0</strong> | Total en calle: <strong id="totalCalleUsd" class="text-emerald-400">$0.00</strong>
+      <!-- BARRA DE RESUMEN MODERNA -->
+      <div class="glass-panel rounded-2xl p-4 mb-4 flex flex-wrap items-center justify-between gap-4 border border-slate-700/60">
+        <div class="flex flex-wrap items-center gap-4">
+          <div>
+            <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Estado actual</div>
+            <div class="text-lg font-extrabold text-white"><span id="cntOcupadas" class="text-amber-400">0</span> <span class="text-slate-400 font-normal text-sm">de</span> <span id="cntTotales" class="text-slate-200">0</span> <span class="text-sm font-medium text-slate-300">ocupadas</span></div>
+          </div>
+          <div class="h-9 w-px bg-slate-800 hidden sm:block"></div>
+          <div>
+            <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Tasa BCV Oficial</div>
+            <div id="lblBcvResumen" class="text-sm font-bold text-emerald-400">Consultando...</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Total activo en calle</div>
+          <div class="flex items-baseline justify-end gap-2">
+            <strong id="totalCalleUsd" class="text-2xl font-extrabold text-amber-400">$0.00</strong>
+            <span id="totalCalleBs" class="text-sm font-semibold text-slate-300">0.00 Bs</span>
+          </div>
         </div>
       </div>
-      <div id="gridMesas" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
+
+      <!-- PESTAÑAS DE FILTRO DE MESAS -->
+      <div id="filtroTipoMesas" class="flex flex-wrap items-center gap-2 mb-4"></div>
+
+      <!-- CUADRÍCULA 3D DE MESAS, BARRAS Y CLIENTES -->
+      <div id="gridMesas" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5"></div>
     </section>
 
     <!-- VISTA DETALLE DE MESA (PANTALLA DIVIDIDA PC) -->
     <section id="vistaDetalleMesa" class="hidden">
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-4 bg-slate-900 border border-slate-800 p-3 rounded-xl">
+      <div class="glass-panel flex flex-wrap items-center justify-between gap-3 mb-4 p-3.5 rounded-2xl">
         <div class="flex items-center gap-3">
-          <button onclick="volverAMesas()" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg text-sm font-semibold">← Volver</button>
+          <button onclick="volverAMesas()" class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 rounded-xl text-sm font-semibold transition">← Volver</button>
           <div>
             <div class="flex items-center gap-2">
-              <h2 id="detNombreMesa" class="text-xl font-bold text-white"></h2>
-              <span id="detEstadoMesa" class="text-xs px-2 py-0.5 rounded-full font-bold"></span>
+              <h2 id="detNombreMesa" class="text-xl font-extrabold text-white"></h2>
+              <span id="detEstadoMesa" class="text-xs px-2.5 py-0.5 rounded-full font-bold"></span>
             </div>
-            <p id="detInfoUlt" class="text-xs text-slate-400"></p>
+            <p id="detInfoUlt" class="text-xs text-slate-400 mt-0.5"></p>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="vaciarMesaAdmin()" class="bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 px-3 py-2 rounded-lg text-sm font-semibold">Vaciar mesa</button>
-          <button onclick="abrirModalQR()" class="bg-slate-800 hover:bg-slate-700 border border-amber-400/40 text-amber-400 px-3 py-2 rounded-lg text-sm font-semibold">Ver / Descargar QR</button>
+          <button onclick="vaciarMesaAdmin()" class="bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-400 px-3.5 py-2 rounded-xl text-sm font-semibold transition">🗑️ Vaciar mesa</button>
+          <button onclick="abrirModalQR()" class="bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 px-3.5 py-2 rounded-xl text-sm font-semibold transition">📱 Ver / Descargar QR</button>
         </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <!-- IZQUIERDA: CATÁLOGO DE PRODUCTOS -->
-        <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col max-h-[75vh]">
+        <div class="lg:col-span-7 glass-panel rounded-2xl p-4 flex flex-col max-h-[75vh]">
           <div class="flex gap-2 mb-3 shrink-0">
-            <input id="buscadorProd" type="text" placeholder="Buscar producto o pasar pistola láser + Enter..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" oninput="renderCatalogo()" onkeydown="manejarEnterBuscador(event)" />
+            <input id="buscadorProd" type="text" placeholder="🔍 Buscar producto o pasar pistola láser + Enter..." class="input-obsidian flex-1 rounded-xl px-3.5 py-2.5 text-sm placeholder-slate-400" oninput="renderCatalogo()" onkeydown="manejarEnterBuscador(event)" />
           </div>
           <div id="filtroCategorias" class="flex items-center gap-2 overflow-x-auto pb-2 mb-3 shrink-0"></div>
           <div id="listaCatalogo" class="flex-1 min-h-0 grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto pr-1 content-start"></div>
         </div>
 
         <!-- DERECHA: CUENTA ACTIVA Y COBRO -->
-        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col max-h-[75vh]">
+        <div class="lg:col-span-5 glass-panel rounded-2xl p-4 flex flex-col max-h-[75vh]">
           <div class="grid grid-cols-2 gap-2 mb-3 shrink-0">
-            <input id="detAlias" type="text" placeholder="Apodo del cliente" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" />
-            <div class="flex gap-1">
-              <input id="detNota" type="text" placeholder="Nota interna" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400" />
-              <button onclick="guardarDatosMesa()" class="bg-slate-700 hover:bg-slate-600 px-3 rounded-lg text-sm font-bold text-amber-400" title="Guardar datos">💾</button>
+            <input id="detAlias" type="text" placeholder="Apodo del cliente" class="input-obsidian rounded-xl px-3 py-2 text-sm" />
+            <div class="flex gap-1.5">
+              <input id="detNota" type="text" placeholder="Nota interna" class="input-obsidian flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" />
+              <button onclick="guardarDatosMesa()" class="bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 px-3 rounded-xl text-sm font-bold text-amber-300 transition" title="Guardar datos">💾</button>
             </div>
           </div>
 
-          <h3 class="text-sm font-bold text-slate-300 mb-2 border-b border-slate-800 pb-1 shrink-0">Consumo actual</h3>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 border-b border-slate-800/90 pb-1.5 shrink-0">Consumo actual</h3>
           <div id="listaConsumo" class="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1 mb-3"></div>
 
-          <div class="border-t border-slate-800 pt-3 mt-auto shrink-0">
+          <div class="border-t border-slate-800/90 pt-3 mt-auto shrink-0">
             <div class="flex justify-between items-end mb-3">
-              <span class="text-slate-400 text-sm">Total a pagar:</span>
+              <span class="text-slate-400 text-sm font-medium">Total a pagar:</span>
               <div class="text-right">
-                <div id="detTotalUsd" class="text-2xl font-bold text-amber-400">$0.00</div>
-                <div id="detTotalBs" class="text-sm font-semibold text-slate-200">0.00 Bs</div>
+                <div id="detTotalUsd" class="text-3xl font-extrabold text-amber-400 leading-none">$0.00</div>
+                <div id="detTotalBs" class="text-sm font-semibold text-slate-200 mt-1">0.00 Bs</div>
               </div>
             </div>
-            <button onclick="cobrarMesa()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-3 rounded-xl transition">Cobrar y liberar mesa</button>
+            <button onclick="cobrarMesa()" class="btn-gold w-full font-extrabold py-3.5 rounded-xl transition text-base">Cobrar y liberar mesa</button>
           </div>
         </div>
       </div>
@@ -141,147 +222,148 @@
   </main>
 
   <!-- MODAL NUEVA MESA -->
-  <div id="modalNuevaMesa" class="fixed inset-0 z-40 bg-black/70 hidden items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm">
-      <h3 class="text-lg font-bold text-amber-400 mb-4">Nueva Mesa / Barra</h3>
-      <input id="nmNombre" type="text" placeholder="Ej: Mesa 7 o Barra 2" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white mb-3" />
-      <input id="nmAlias" type="text" placeholder="Apodo cliente (opcional)" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white mb-4" />
+  <div id="modalNuevaMesa" class="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl p-6 w-full max-w-sm border border-amber-400/25">
+      <h3 class="text-lg font-extrabold text-amber-400 mb-4">+ Nueva Mesa / Barra / Cliente</h3>
+      <input id="nmNombre" type="text" placeholder="Ej: Mesa 7, Barra 3 o Cliente 5" class="input-obsidian w-full rounded-xl px-3.5 py-2.5 text-sm mb-3" />
+      <input id="nmAlias" type="text" placeholder="Apodo cliente (opcional)" class="input-obsidian w-full rounded-xl px-3.5 py-2.5 text-sm mb-5" />
       <div class="flex justify-end gap-2">
-        <button onclick="cerrarModal('modalNuevaMesa')" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 text-sm">Cancelar</button>
-        <button onclick="crearNuevaMesa()" class="px-4 py-2 rounded-lg bg-amber-400 text-slate-950 font-bold text-sm">Crear</button>
+        <button onclick="cerrarModal('modalNuevaMesa')" class="px-4 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-semibold">Cancelar</button>
+        <button onclick="crearNuevaMesa()" class="btn-gold px-5 py-2 rounded-xl font-extrabold text-sm">Crear</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL QR HD -->
-  <div id="modalQR" class="fixed inset-0 z-40 bg-black/80 hidden items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm text-center">
-      <h3 id="qrTitulo" class="text-xl font-bold text-amber-400 mb-1"></h3>
+  <div id="modalQR" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl p-6 w-full max-w-sm text-center border border-amber-400/25">
+      <h3 id="qrTitulo" class="text-xl font-extrabold text-amber-400 mb-1"></h3>
       <p class="text-xs text-slate-400 mb-4">Escanea para ver tu cuenta en vivo</p>
-      <div class="bg-white p-3 rounded-xl inline-block mb-4">
+      <div class="bg-white p-3.5 rounded-2xl inline-block mb-4 shadow-xl ring-2 ring-amber-400/40">
         <img id="qrImg" class="w-56 h-56 object-contain" crossorigin="anonymous" />
       </div>
       <div class="flex flex-col gap-2">
-        <button onclick="descargarQRHD()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-sm">Descargar QR en HD (PNG)</button>
-        <button onclick="cerrarModal('modalQR')" class="w-full bg-slate-800 text-slate-300 py-2 rounded-xl text-sm">Cerrar</button>
+        <button onclick="descargarQRHD()" class="btn-gold w-full font-extrabold py-2.5 rounded-xl text-sm">Descargar QR en HD (PNG)</button>
+        <button onclick="cerrarModal('modalQR')" class="w-full bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-300 py-2.5 rounded-xl text-sm font-semibold">Cerrar</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL VENTAS / HISTORIAL -->
-  <div id="modalHistorial" class="fixed inset-0 z-40 bg-black/80 hidden items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-4xl max-h-[88vh] flex flex-col">
-      <div class="flex flex-wrap justify-between items-start gap-3 mb-4 border-b border-slate-800 pb-3">
+  <div id="modalHistorial" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl p-6 w-full max-w-4xl max-h-[88vh] flex flex-col border border-emerald-400/20">
+      <div class="flex flex-wrap justify-between items-start gap-3 mb-4 border-b border-slate-800/90 pb-3.5">
         <div>
-          <h3 class="text-xl font-bold text-amber-400">Ventas del Día / Historial</h3>
-          <p id="histResumen" class="text-sm text-slate-300 mt-0.5"></p>
+          <h3 class="text-xl font-extrabold text-amber-400">📊 Ventas del Día / Historial</h3>
+          <p id="histResumen" class="text-sm text-slate-300 mt-0.5 font-medium"></p>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="limpiarHistorialConPin()" class="bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 px-3 py-1.5 rounded-lg text-sm font-bold">🗑️ Reiniciar / Borrar Día</button>
-          <button onclick="cerrarModal('modalHistorial')" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-sm">Cerrar</button>
+          <button onclick="limpiarHistorialConPin()" class="bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-400 px-3.5 py-2 rounded-xl text-sm font-bold transition">🗑️ Reiniciar / Borrar Día</button>
+          <button onclick="cerrarModal('modalHistorial')" class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 rounded-xl text-sm font-semibold">Cerrar</button>
         </div>
       </div>
 
       <div class="flex-1 overflow-y-auto space-y-5 pr-1">
         <!-- RESUMEN POR MESA -->
         <div>
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Total vendido por mesa</h4>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">Total vendido por mesa</h4>
           <div id="resumenPorMesa" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5"></div>
         </div>
 
         <!-- DETALLE DE TODAS LAS VENTAS -->
         <div>
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Detalle de todas las ventas del día</h4>
-          <div id="listaHistorial" class="space-y-2"></div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">Detalle de todas las ventas del día</h4>
+          <div id="listaHistorial" class="space-y-2.5"></div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- MODAL ADMIN -->
-  <div id="modalAdmin" class="fixed inset-0 z-40 bg-black/80 hidden items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] flex flex-col">
-      <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
-        <h3 class="text-xl font-bold text-amber-400">Panel de Administrador</h3>
-        <button onclick="cerrarModal('modalAdmin')" class="bg-slate-800 px-3 py-1.5 rounded-lg text-sm">Cerrar</button>
+  <div id="modalAdmin" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl p-6 w-full max-w-4xl max-h-[90vh] flex flex-col border border-amber-400/25">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-800/90 pb-3">
+        <h3 class="text-xl font-extrabold text-amber-400">🔒 Panel de Administrador</h3>
+        <button onclick="cerrarModal('modalAdmin')" class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 px-3.5 py-1.5 rounded-xl text-sm font-semibold">Cerrar</button>
       </div>
 
       <!-- PIN -->
       <div id="adminPinBox" class="py-8 max-w-xs mx-auto text-center">
         <p class="text-sm text-slate-400 mb-3">Ingresa el PIN de Administrador</p>
-        <input id="inputPin" type="password" placeholder="PIN" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-center text-lg tracking-widest mb-3" onkeydown="if(event.key==='Enter') validarAdmin()" />
-        <button onclick="validarAdmin()" class="w-full bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg">Desbloquear</button>
+        <input id="inputPin" type="password" placeholder="••••" class="input-obsidian w-full rounded-xl px-4 py-3 text-center text-lg tracking-widest mb-3" onkeydown="if(event.key==='Enter') validarAdmin()" />
+        <button onclick="validarAdmin()" class="btn-gold w-full font-extrabold py-2.5 rounded-xl">Desbloquear</button>
       </div>
 
       <!-- CONTENIDO ADMIN -->
-      <div id="adminContent" class="hidden flex-1 overflow-y-auto space-y-6 pr-1">
+      <div id="adminContent" class="hidden flex-1 overflow-y-auto space-y-5 pr-1">
         <!-- TASA Y HISTORIAL -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
+          <div class="bg-[#0d1322]/90 border border-slate-700/70 p-4 rounded-2xl">
             <div class="flex justify-between items-center mb-2 gap-2">
               <h4 class="font-bold text-sm text-amber-400">Tasa del Sistema (Bs por $1)</h4>
               <span id="lblBcvOficialAdmin" class="text-xs text-emerald-400 font-semibold"></span>
             </div>
             <div class="flex gap-2">
-              <input id="admTasa" type="number" step="0.01" placeholder="Tasa manual o BCV" class="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white" />
-              <button onclick="aplicarTasaBCVHoy()" title="Cargar tasa oficial BCV de hoy y sincronizar con PC, App y QR" class="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold px-3 rounded-lg text-xs shrink-0">🔄 Usar BCV</button>
-              <button onclick="actualizarTasa()" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-4 rounded-lg text-sm shrink-0">Guardar</button>
+              <input id="admTasa" type="number" step="0.01" placeholder="Tasa manual o BCV" class="input-obsidian flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" />
+              <button onclick="aplicarTasaBCVHoy()" title="Cargar tasa oficial BCV de hoy y sincronizar con PC, App y QR" class="bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold px-3 rounded-xl text-xs shrink-0 transition">🔄 Usar BCV</button>
+              <button onclick="actualizarTasa()" class="btn-gold font-extrabold px-4 rounded-xl text-sm shrink-0">Guardar</button>
             </div>
             <p class="text-[11px] text-slate-400 mt-2">Puedes poner tu propia tasa o usar la del BCV. Se sincroniza al instante con el teléfono y el QR.</p>
           </div>
-          <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl flex items-center justify-between">
+          <div class="bg-[#0d1322]/90 border border-red-500/25 p-4 rounded-2xl flex items-center justify-between gap-3">
             <div>
               <h4 class="font-bold text-sm text-red-400">Cierre de Caja</h4>
               <p class="text-xs text-slate-400">Borra las ventas del día en Historial</p>
             </div>
-            <button onclick="limpiarHistorial()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/40 px-3 py-2 rounded-lg text-sm font-bold">Limpiar Historial</button>
+            <button onclick="limpiarHistorial()" class="bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/40 px-3.5 py-2 rounded-xl text-sm font-bold shrink-0 transition">Limpiar Historial</button>
           </div>
         </div>
 
         <!-- GESTIONAR PRODUCTOS -->
-        <div id="boxFormProducto" class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
+        <div id="boxFormProducto" class="bg-[#0d1322]/90 border border-slate-700/70 p-4 rounded-2xl">
           <div class="flex justify-between items-center mb-3">
             <h4 id="tituloFormProd" class="font-bold text-amber-400">Agregar / Editar Producto</h4>
             <button onclick="limpiarFormProd()" class="text-xs text-slate-400 hover:text-white underline">Limpiar formulario</button>
           </div>
           <input type="hidden" id="pId" />
           <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-3">
-            <input id="pNombre" placeholder="Nombre *" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm col-span-2" />
-            <input id="pCategoria" placeholder="Categoría (ej: licores)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
-            <input id="pPrecio" type="number" step="0.01" placeholder="Precio USD *" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
-            <input id="pUCombo" type="number" placeholder="Unid. combo (ej: 12)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
-            <input id="pPCombo" type="number" step="0.01" placeholder="Precio combo USD" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+            <input id="pNombre" placeholder="Nombre *" class="input-obsidian rounded-xl px-3 py-2 text-sm col-span-2" />
+            <input id="pCategoria" placeholder="Categoría (ej: licores)" class="input-obsidian rounded-xl px-3 py-2 text-sm" />
+            <input id="pPrecio" type="number" step="0.01" placeholder="Precio USD *" class="input-obsidian rounded-xl px-3 py-2 text-sm" />
+            <input id="pUCombo" type="number" placeholder="Unid. combo (ej: 12)" class="input-obsidian rounded-xl px-3 py-2 text-sm" />
+            <input id="pPCombo" type="number" step="0.01" placeholder="Precio combo USD" class="input-obsidian rounded-xl px-3 py-2 text-sm" />
             <div class="flex gap-1.5">
-              <input id="pCodigo" placeholder="Código de barras" onfocus="state.capturandoCodigoForm = true;" onblur="state.capturandoCodigoForm = false;" class="flex-1 min-w-0 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-lg px-3 py-2 text-sm focus:outline-none" />
-              <button type="button" onclick="activarEscaneoCodigoForm()" title="Enfocar y esperar lectura del láser en Código de barras" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-2.5 rounded-lg text-sm shrink-0">🔫</button>
+              <input id="pCodigo" placeholder="Código de barras" onfocus="state.capturandoCodigoForm = true;" onblur="state.capturandoCodigoForm = false;" class="input-obsidian flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" />
+              <button type="button" onclick="activarEscaneoCodigoForm()" title="Enfocar y esperar lectura del láser en Código de barras" class="btn-gold font-bold px-2.5 rounded-xl text-sm shrink-0">🔫</button>
             </div>
-            <select id="pActivo" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+            <select id="pActivo" class="input-obsidian rounded-xl px-3 py-2 text-sm">
               <option value="SI">Activo: SI</option>
               <option value="NO">Activo: NO</option>
             </select>
-            <input id="pImagenUrl" placeholder="URL imagen (o sube archivo ->)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm col-span-2" />
+            <input id="pImagenUrl" placeholder="URL imagen (o sube archivo ->)" class="input-obsidian rounded-xl px-3 py-2 text-sm col-span-2" />
             <input id="pFile" type="file" accept="image/*" onchange="subirFotoDrive(event)" class="text-xs text-slate-300 col-span-2 self-center" />
           </div>
-          <button id="btnGuardarProd" onclick="guardarProducto()" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-5 py-2 rounded-lg text-sm">Guardar Producto</button>
+          <button id="btnGuardarProd" onclick="guardarProducto()" class="btn-gold font-extrabold px-5 py-2 rounded-xl text-sm">Guardar Producto</button>
 
-          <div id="listaProdAdmin" class="mt-4 max-h-56 overflow-y-auto divide-y divide-slate-700/60"></div>
+          <div id="listaProdAdmin" class="mt-4 max-h-56 overflow-y-auto divide-y divide-slate-800/80"></div>
         </div>
 
         <!-- GESTIONAR MESAS -->
-        <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
+        <div class="bg-[#0d1322]/90 border border-slate-700/70 p-4 rounded-2xl">
           <h4 class="font-bold text-amber-400 mb-3">Gestionar Mesas</h4>
-          <div id="listaMesasAdmin" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+          <div id="listaMesasAdmin" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- TOAST -->
-  <div id="toast" class="fixed bottom-4 right-4 z-50 bg-slate-800 border border-amber-400/50 text-white px-4 py-2.5 rounded-xl shadow-xl text-sm hidden"></div>
+  <div id="toast" class="fixed bottom-4 right-4 z-50 glass-panel border border-amber-400/50 text-white px-4 py-2.5 rounded-xl shadow-2xl text-sm font-medium hidden"></div>
 
 <script>
   const API_URL = 'https://script.google.com/macros/s/AKfycbxptni1VZnL2Vc8k0RMJ2BhBxGnvgZw1IJxwjbVbx8Bh262N8r6NQc4tuoMz2uwiTE-/exec';
   const QR_BASE_URL = 'https://la-joya-cuentas.pages.dev/?mesa=';
+  const LOGO_FALLBACK = 'https://i.ibb.co/gLJsFsnX/logojoya.png';
 
   let state = {
     trabajador: localStorage.getItem('lj_trabajador') || '',
@@ -296,6 +378,7 @@
     cuentas: [],
     mesaActivaId: null,
     categoriaActiva: 'Todos',
+    filtroTipoMesa: 'Todas',
     editandoCantidad: false
   };
 
@@ -328,6 +411,91 @@
 
   function getTasaActiva() {
     return Number(state.config && state.config.tasa_bs ? state.config.tasa_bs : 0);
+  }
+
+  function clasificarMesa(nombre) {
+    const n = String(nombre || '').toLowerCase();
+    if (n.includes('barra')) return 'Barra';
+    if (n.includes('mesa')) return 'Mesas';
+    return 'Clientes';
+  }
+
+  // ÍCONOS 3D ISOMÉTRICOS CON PEDESTAL NEÓN
+  function getIcono3D(nombreMesa, isOcupada) {
+    const tipo = clasificarMesa(nombreMesa);
+    const neon = isOcupada ? '#f59e0b' : '#10b981';
+    const neonSoft = isOcupada ? '#fbbf24' : '#34d399';
+    const baseTop = isOcupada ? '#2b180a' : '#0b221e';
+    const baseLeft = isOcupada ? '#1a0e06' : '#071714';
+    const baseRight = isOcupada ? '#120904' : '#05110f';
+
+    const pedestal = `
+      <polygon points="50,62 86,78 50,94 14,78" fill="${baseTop}" stroke="${neon}" stroke-width="2" />
+      <polygon points="14,78 50,94 50,99 14,83" fill="${baseLeft}" />
+      <polygon points="86,78 50,94 50,99 86,83" fill="${baseRight}" />
+      <polygon points="50,66 78,78 50,90 22,78" fill="none" stroke="${neonSoft}" stroke-width="1.2" opacity="0.65" />
+    `;
+
+    if (tipo === 'Barra') {
+      const seatTop = isOcupada ? '#d97706' : '#334155';
+      const seatSide = isOcupada ? '#92400e' : '#1e293b';
+      const legCol = isOcupada ? '#b45309' : '#475569';
+      return `
+        <svg viewBox="0 0 100 104" class="w-20 h-20 drop-shadow-[0_6px_12px_rgba(0,0,0,0.65)]">
+          ${pedestal}
+          <ellipse cx="50" cy="76" rx="14" ry="6" fill="none" stroke="${legCol}" stroke-width="2.2" />
+          <line x1="41" y1="42" x2="38" y2="78" stroke="${legCol}" stroke-width="2.8" stroke-linecap="round" />
+          <line x1="59" y1="42" x2="62" y2="78" stroke="${legCol}" stroke-width="2.8" stroke-linecap="round" />
+          <line x1="50" y1="44" x2="50" y2="80" stroke="${legCol}" stroke-width="3" stroke-linecap="round" />
+          <ellipse cx="50" cy="63" rx="11" ry="4.5" fill="none" stroke="${neonSoft}" stroke-width="1.6" opacity="0.85" />
+          <path d="M35,38 L35,44 A15,7 0 0,0 65,44 L65,38 Z" fill="${seatSide}" />
+          <ellipse cx="50" cy="38" rx="15" ry="7" fill="${seatTop}" stroke="${neonSoft}" stroke-width="1" />
+        </svg>
+      `;
+    }
+
+    if (tipo === 'Clientes') {
+      const shirt = isOcupada ? '#d97706' : '#334155';
+      const shirtDark = isOcupada ? '#92400e' : '#1e293b';
+      const skin = '#f1c29b';
+      const hair = '#3b2416';
+      return `
+        <svg viewBox="0 0 100 104" class="w-20 h-20 drop-shadow-[0_6px_12px_rgba(0,0,0,0.65)]">
+          ${pedestal}
+          <path d="M30,74 C30,58 70,58 70,74 C70,80 61,84 50,84 C39,84 30,80 30,74 Z" fill="${shirt}" stroke="${neonSoft}" stroke-width="1" />
+          <path d="M50,60 C62,60 70,65 70,74 C70,80 61,84 50,84 Z" fill="${shirtDark}" opacity="0.45" />
+          <rect x="45" y="51" width="10" height="9" rx="3" fill="#dfa982" />
+          <circle cx="50" cy="40" r="14" fill="${skin}" />
+          <path d="M36,38 C36,27 43,23 51,23 C60,23 64,29 64,37 C60,33 54,32 47,33 C42,34 39,36 36,38 Z" fill="${hair}" />
+          <circle cx="45" cy="41" r="1.7" fill="#1e293b" />
+          <circle cx="55" cy="41" r="1.7" fill="#1e293b" />
+          <path d="M46,46 Q50,49 54,46" fill="none" stroke="#9a5b3c" stroke-width="1.6" stroke-linecap="round" />
+        </svg>
+      `;
+    }
+
+    // Por defecto: Mesa 3D con sillas
+    const woodTop = isOcupada ? '#c26d2d' : '#334155';
+    const woodSide1 = isOcupada ? '#8c4719' : '#1e293b';
+    const woodSide2 = isOcupada ? '#6e3511' : '#0f172a';
+    const chairCol = isOcupada ? '#9a4f1d' : '#283548';
+    return `
+      <svg viewBox="0 0 100 104" class="w-20 h-20 drop-shadow-[0_6px_12px_rgba(0,0,0,0.65)]">
+        ${pedestal}
+        <!-- Sillas traseras -->
+        <polygon points="31,42 39,46 39,58 31,54" fill="${chairCol}" />
+        <polygon points="69,42 61,46 61,58 69,54" fill="${chairCol}" />
+        <!-- Patas mesa -->
+        <line x1="33" y1="53" x2="33" y2="75" stroke="${woodSide2}" stroke-width="3.5" stroke-linecap="round" />
+        <line x1="67" y1="53" x2="67" y2="75" stroke="${woodSide2}" stroke-width="3.5" stroke-linecap="round" />
+        <line x1="50" y1="62" x2="50" y2="83" stroke="${woodSide1}" stroke-width="3.8" stroke-linecap="round" />
+        <line x1="50" y1="45" x2="50" y2="68" stroke="${woodSide2}" stroke-width="3" stroke-linecap="round" />
+        <!-- Tapa de la mesa 3D -->
+        <polygon points="50,36 74,48 50,60 26,48" fill="${woodTop}" stroke="${neonSoft}" stroke-width="1" />
+        <polygon points="26,48 50,60 50,65 26,53" fill="${woodSide1}" />
+        <polygon points="74,48 50,60 50,65 74,53" fill="${woodSide2}" />
+      </svg>
+    `;
   }
 
   function calcularLinea(prod, cant) {
@@ -378,15 +546,15 @@
   function actualizarIndicadorBCV() {
     const btn = document.getElementById('btnAlertaBcv');
     const lblAdmin = document.getElementById('lblBcvOficialAdmin');
-    const tasaActiva = getTasaActiva();
+    const lblRes = document.getElementById('lblBcvResumen');
 
     if (state.tasaBcvApi > 0) {
-      if (lblAdmin) lblAdmin.textContent = `BCV hoy: ${state.tasaBcvApi.toFixed(2)} Bs`;
-      if (Math.abs(state.tasaBcvApi - tasaActiva) >= 0.01) {
-        btn.textContent = `BCV hoy: ${state.tasaBcvApi.toFixed(2)} Bs`;
+      const texto = `BCV hoy: ${state.tasaBcvApi.toFixed(2)} Bs`;
+      if (lblAdmin) lblAdmin.textContent = texto;
+      if (lblRes) lblRes.textContent = `${state.tasaBcvApi.toFixed(2)} Bs`;
+      if (btn) {
+        btn.textContent = texto;
         btn.classList.remove('hidden');
-      } else {
-        btn.classList.add('hidden');
       }
     }
   }
@@ -425,7 +593,7 @@
   async function syncVivo() {
     if (state.editandoCantidad) return;
     const dot = document.getElementById('syncDot');
-    dot.classList.replace('bg-emerald-400', 'bg-amber-400');
+    if (dot) dot.classList.replace('bg-emerald-400', 'bg-amber-400');
     try {
       const data = await apiGet('sync');
       if (data.ok && !state.editandoCantidad) {
@@ -441,13 +609,13 @@
         renderTodo();
       }
     } catch (e) {}
-    dot.classList.replace('bg-amber-400', 'bg-emerald-400');
+    if (dot) dot.classList.replace('bg-amber-400', 'bg-emerald-400');
   }
 
   function renderTrabajadoresLogin() {
     const cont = document.getElementById('listaTrabajadores');
     cont.innerHTML = (state.config.trabajadores || []).map(t =>
-      `<button onclick="document.getElementById('inputTrabajador').value='${esc(t)}'; iniciarTurno();" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-1.5 rounded-full text-slate-200">${escHtml(t)}</button>`
+      `<button onclick="document.getElementById('inputTrabajador').value='${esc(t)}'; iniciarTurno();" class="bg-slate-800/90 hover:bg-amber-400/20 border border-slate-700 hover:border-amber-400/50 text-xs px-3 py-1.5 rounded-full text-slate-200 transition">${escHtml(t)}</button>`
     ).join('');
   }
 
@@ -502,25 +670,27 @@
     const filtradas = filtrarMesasRapido(inp.value);
 
     if (filtradas.length === 0) {
-      dd.innerHTML = '<div class="px-3 py-2.5 text-xs text-slate-400">No se encontró ninguna mesa</div>';
+      dd.innerHTML = '<div class="px-3.5 py-3 text-xs text-slate-400">No se encontró ninguna mesa</div>';
     } else {
       dd.innerHTML = filtradas.map(m => {
         const tot = getTotalMesa(m.id_mesa);
         const isOcupada = m.estado === 'OCUPADA' || tot.usd > 0;
         const tieneNota = m.nota_interna && String(m.nota_interna).trim() !== '';
+        const tipo = clasificarMesa(m.nombre_mesa);
+        const emo = tipo === 'Barra' ? '🍸' : (tipo === 'Clientes' ? '👤' : '🪑');
         return `
           <button type="button" onclick="seleccionarMesaRapida('${esc(m.id_mesa)}')"
-            class="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center justify-between gap-2 transition">
+            class="w-full text-left px-3.5 py-2.5 hover:bg-slate-800/80 flex items-center justify-between gap-2 transition">
             <div class="min-w-0">
               <div class="font-bold text-sm text-white truncate flex items-center gap-1.5">
-                <span>🪑 ${escHtml(m.nombre_mesa)}</span>
-                ${tieneNota ? '<span class="text-[10px] bg-amber-400/20 text-amber-300 border border-amber-400/50 px-1.5 py-0.2 rounded">📝 Nota</span>' : ''}
+                <span>${emo} ${escHtml(m.nombre_mesa)}</span>
+                ${tieneNota ? '<span class="text-[10px] bg-yellow-400/20 text-yellow-200 border border-yellow-400/50 px-1.5 rounded">📝 Nota</span>' : ''}
               </div>
               <div class="text-xs text-slate-400 truncate">${escHtml(m.alias_cliente || 'Sin cliente')}</div>
             </div>
             <div class="text-right shrink-0">
-              <div class="text-xs font-bold ${isOcupada ? 'text-amber-400' : 'text-emerald-400'}">$${tot.usd.toFixed(2)}</div>
-              <div class="text-[10px] ${isOcupada ? 'text-red-400' : 'text-slate-500'}">${isOcupada ? 'OCUPADA' : 'LIBRE'}</div>
+              <div class="text-xs font-extrabold ${isOcupada ? 'text-amber-400' : 'text-emerald-400'}">$${tot.usd.toFixed(2)}</div>
+              <div class="text-[10px] font-bold ${isOcupada ? 'text-orange-400' : 'text-emerald-400'}">${isOcupada ? 'OCUPADA' : 'LIBRE'}</div>
             </div>
           </button>
         `;
@@ -559,43 +729,98 @@
     }
   });
 
+  function renderFiltroTipoMesas() {
+    const cTodas = state.mesas.length;
+    const cMesas = state.mesas.filter(m => clasificarMesa(m.nombre_mesa) === 'Mesas').length;
+    const cBarra = state.mesas.filter(m => clasificarMesa(m.nombre_mesa) === 'Barra').length;
+    const cClientes = state.mesas.filter(m => clasificarMesa(m.nombre_mesa) === 'Clientes').length;
+
+    const tabs = [
+      { key: 'Todas', label: `Todas (${cTodas})` },
+      { key: 'Mesas', label: `Mesas (${cMesas})` },
+      { key: 'Barra', label: `Barra (${cBarra})` },
+      { key: 'Clientes', label: `Clientes (${cClientes})` }
+    ];
+
+    document.getElementById('filtroTipoMesas').innerHTML = tabs.map(t => {
+      const activo = state.filtroTipoMesa === t.key;
+      return `
+        <button onclick="state.filtroTipoMesa='${t.key}'; renderMesas();"
+          class="px-4 py-1.5 rounded-full text-xs font-extrabold transition ${
+            activo
+              ? 'btn-gold'
+              : 'bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300'
+          }">
+          ${t.label}
+        </button>
+      `;
+    }).join('');
+  }
+
   function renderMesas() {
+    renderFiltroTipoMesas();
     const grid = document.getElementById('gridMesas');
     let ocupadas = 0, totalCalle = 0;
 
-    grid.innerHTML = state.mesas.map(m => {
+    state.mesas.forEach(m => {
+      const tot = getTotalMesa(m.id_mesa);
+      if (m.estado === 'OCUPADA' || tot.usd > 0) {
+        ocupadas++;
+        totalCalle += tot.usd;
+      }
+    });
+
+    const visibles = state.mesas.filter(m =>
+      state.filtroTipoMesa === 'Todas' || clasificarMesa(m.nombre_mesa) === state.filtroTipoMesa
+    );
+
+    grid.innerHTML = visibles.map(m => {
       const tot = getTotalMesa(m.id_mesa);
       const isOcupada = m.estado === 'OCUPADA' || tot.usd > 0;
       const notaLimpia = String(m.nota_interna || '').trim();
-      if (isOcupada) { ocupadas++; totalCalle += tot.usd; }
+      const cardClass = isOcupada ? 'glass-card-ocupada' : 'glass-card-libre';
+
       return `
-        <div onclick="abrirMesa('${esc(m.id_mesa)}')" class="cursor-pointer bg-slate-900 hover:bg-slate-800/90 border ${isOcupada ? 'border-amber-400/60' : 'border-slate-800'} rounded-xl p-3.5 transition flex flex-col justify-between">
-          <div>
-            <div class="flex justify-between items-start gap-2 mb-1.5">
-              <div class="flex items-center gap-2 min-w-0">
-                <span class="text-xl shrink-0">🪑</span>
-                <h3 class="font-bold text-white text-base leading-tight truncate">${escHtml(m.nombre_mesa)}</h3>
-              </div>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${isOcupada ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}">${isOcupada ? 'OCUPADA' : 'LIBRE'}</span>
+        <div onclick="abrirMesa('${esc(m.id_mesa)}')" class="${cardClass} cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 flex flex-col justify-between">
+          <!-- ZONA SUPERIOR -->
+          <div class="p-3 pb-1">
+            <div class="flex justify-between items-center gap-1.5 mb-1">
+              <h3 class="font-extrabold text-white text-sm leading-tight truncate">${escHtml(m.nombre_mesa)}</h3>
+              <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 border ${
+                isOcupada
+                  ? 'bg-orange-500/20 border-orange-400/50 text-orange-300'
+                  : 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'
+              }">• ${isOcupada ? 'OCUPADA' : 'LIBRE'}</span>
             </div>
-            <p class="text-xs text-slate-400 truncate mb-2">${escHtml(m.alias_cliente || 'Sin cliente')}</p>
+            <p class="text-[11px] text-slate-400 truncate">${escHtml(m.alias_cliente || 'Sin cliente')}</p>
             ${notaLimpia ? `
-              <div class="mb-2 bg-yellow-400/20 border border-yellow-400/70 text-yellow-200 rounded-lg px-2 py-1 text-[11px] font-semibold flex items-start gap-1">
+              <div class="mt-1.5 bg-yellow-400/20 border border-yellow-400/70 text-yellow-200 rounded-lg px-2 py-1 text-[11px] font-semibold flex items-start gap-1">
                 <span class="shrink-0">📝</span>
-                <span class="break-words leading-snug">${escHtml(notaLimpia)}</span>
+                <span class="break-words leading-snug line-clamp-2">${escHtml(notaLimpia)}</span>
               </div>
             ` : ''}
           </div>
-          <div class="border-t border-slate-800 pt-2">
-            <div class="text-lg font-bold ${isOcupada ? 'text-amber-400' : 'text-slate-500'}">$${tot.usd.toFixed(2)}</div>
-            <div class="text-xs font-medium text-slate-300">${fmtBs(tot.bs)}</div>
+
+          <!-- ÍCONO 3D ISOMÉTRICO CENTRAL -->
+          <div class="flex items-center justify-center py-1 px-2">
+            ${getIcono3D(m.nombre_mesa, isOcupada)}
+          </div>
+
+          <!-- FRANJA INFERIOR DE PRECIOS (SIEMPRE VISIBLE Y GRANDE) -->
+          <div class="bg-[#070b14]/85 border-t ${isOcupada ? 'border-amber-400/25' : 'border-emerald-400/20'} px-3 py-2 text-center">
+            <div class="text-xl font-extrabold leading-tight ${isOcupada ? 'text-amber-400' : 'text-slate-300'}">$${tot.usd.toFixed(2)}</div>
+            <div class="text-xs font-semibold text-slate-300 mt-0.5">${fmtBs(tot.bs)}</div>
           </div>
         </div>
       `;
     }).join('');
 
+    totalCalle = Math.round(totalCalle * 100) / 100;
+    const totalCalleBs = Math.round(totalCalle * getTasaActiva() * 100) / 100;
     document.getElementById('cntOcupadas').textContent = ocupadas;
+    document.getElementById('cntTotales').textContent = state.mesas.length;
     document.getElementById('totalCalleUsd').textContent = `$${totalCalle.toFixed(2)}`;
+    document.getElementById('totalCalleBs').textContent = fmtBs(totalCalleBs);
   }
 
   function abrirMesa(idMesa) {
@@ -624,7 +849,7 @@
   function renderCategorias() {
     const cats = ['Todos', ...new Set(state.productos.map(p => p.categoria || 'Otros'))];
     document.getElementById('filtroCategorias').innerHTML = cats.map(c =>
-      `<button onclick="state.categoriaActiva='${esc(c)}'; renderCategorias(); renderCatalogo();" class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap shrink-0 ${state.categoriaActiva === c ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">${escHtml(c)}</button>`
+      `<button onclick="state.categoriaActiva='${esc(c)}'; renderCategorias(); renderCatalogo();" class="px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap shrink-0 transition ${state.categoriaActiva === c ? 'btn-gold' : 'bg-slate-800/85 border border-slate-700/80 text-slate-300 hover:bg-slate-700'}">${escHtml(c)}</button>`
     ).join('');
   }
 
@@ -636,7 +861,7 @@
     const isOcupada = mesa.estado === 'OCUPADA';
     const estEl = document.getElementById('detEstadoMesa');
     estEl.textContent = mesa.estado;
-    estEl.className = `text-xs px-2 py-0.5 rounded-full font-bold ${isOcupada ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`;
+    estEl.className = `text-xs px-2.5 py-0.5 rounded-full font-extrabold border ${isOcupada ? 'bg-orange-500/20 border-orange-400/50 text-orange-300' : 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'}`;
     document.getElementById('detInfoUlt').textContent = mesa.ultimo_trabajador ? `Último: ${mesa.ultimo_trabajador} (${mesa.ultima_actualizacion})` : '';
 
     renderCatalogo();
@@ -659,26 +884,26 @@
       const cant = c ? c.cantidad_unidades : 0;
       const pUsd = Number(p.precio_usd || 0);
       const precioBs = Math.round(pUsd * tasa * 100) / 100;
-      const img = p.imagen_url || 'https://i.ibb.co/gLJsFsnX/logojoya.png';
+      const img = p.imagen_url || LOGO_FALLBACK;
       return `
-        <div class="bg-slate-800/70 border ${cant > 0 ? 'border-amber-400/60' : 'border-slate-700/70'} rounded-xl p-2.5 flex flex-col justify-between gap-2">
+        <div class="bg-[#0d1424]/90 border ${cant > 0 ? 'border-amber-400/70 shadow-[0_0_16px_-6px_rgba(245,158,11,0.4)]' : 'border-slate-800/90 hover:border-slate-700'} rounded-xl p-2.5 flex flex-col justify-between gap-2 transition">
           <div class="flex gap-2.5 items-center">
-            <img src="${img}" class="w-11 h-11 rounded-lg object-cover bg-white shrink-0" />
+            <img src="${escHtml(img)}" onerror="this.onerror=null;this.src='${LOGO_FALLBACK}'" class="w-11 h-11 rounded-lg object-cover bg-white shrink-0 ring-1 ring-slate-700" />
             <div class="min-w-0 flex-1">
               <div class="font-bold text-sm text-white truncate">${escHtml(p.nombre)}</div>
-              <div class="text-xs"><span class="text-amber-400 font-bold">$${pUsd.toFixed(2)}</span> <span class="text-slate-300">· ${fmtBs(precioBs)}</span></div>
-              ${p.unidades_combo > 1 && p.precio_combo_usd > 0 ? `<div class="text-[11px] text-sky-400 font-medium">Combo x${p.unidades_combo}: $${Number(p.precio_combo_usd).toFixed(2)}</div>` : ''}
+              <div class="text-xs"><span class="text-amber-400 font-extrabold">$${pUsd.toFixed(2)}</span> <span class="text-slate-300">· ${fmtBs(precioBs)}</span></div>
+              ${p.unidades_combo > 1 && p.precio_combo_usd > 0 ? `<div class="text-[11px] text-sky-400 font-semibold">Combo x${p.unidades_combo}: $${Number(p.precio_combo_usd).toFixed(2)}</div>` : ''}
             </div>
           </div>
           <div class="flex items-center justify-end gap-1.5">
-            <button onclick="ajustarItem('${esc(p.id_producto)}', -1)" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-700 font-bold text-white">-</button>
+            <button onclick="ajustarItem('${esc(p.id_producto)}', -1)" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 font-bold text-white transition">-</button>
             <input type="number" min="0" value="${cant}" data-cant-actual="${cant}"
               onfocus="state.editandoCantidad = true; this.select();"
               onblur="aplicarInputCantidad(this, '${esc(p.id_producto)}')"
               onkeydown="if(event.key==='Enter'){ this.blur(); }"
               title="Escribe la cantidad o pon 0 para borrar"
-              class="w-14 h-8 rounded-lg bg-slate-950 border border-slate-600 focus:border-amber-400 text-center font-bold text-sm text-white focus:outline-none" />
-            <button onclick="ajustarItem('${esc(p.id_producto)}', 1)" class="w-9 h-8 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold">+</button>
+              class="input-obsidian w-14 h-8 rounded-lg text-center font-bold text-sm" />
+            <button onclick="ajustarItem('${esc(p.id_producto)}', 1)" class="btn-gold w-9 h-8 rounded-lg font-extrabold">+</button>
             ${p.unidades_combo > 1 ? `<button onclick="ajustarItem('${esc(p.id_producto)}', ${p.unidades_combo})" class="px-2 h-8 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold">+${p.unidades_combo}</button>` : ''}
           </div>
         </div>
@@ -792,25 +1017,27 @@
       cont.innerHTML = '<p class="text-slate-500 text-sm text-center py-8">No hay consumos en esta mesa.</p>';
     } else {
       cont.innerHTML = cuentasMesa.map(c => {
-        const prod = state.productos.find(p => p.id_producto === c.id_producto) || { nombre: c.id_producto, precio_usd: 0, unidades_combo: 0, precio_combo_usd: 0 };
+        const prod = state.productos.find(p => p.id_producto === c.id_producto) || { nombre: c.id_producto, precio_usd: 0, unidades_combo: 0, precio_combo_usd: 0, imagen_url: '' };
         const calc = calcularLinea(prod, c.cantidad_unidades);
         totalUsd += calc.subtotalUsd;
+        const img = prod.imagen_url || LOGO_FALLBACK;
         let desc = `${c.cantidad_unidades} und`;
         if (calc.combos > 0 && calc.sueltas > 0) desc = `${calc.combos} combo(s) + ${calc.sueltas} suelta(s)`;
         else if (calc.combos > 0) desc = `${calc.combos} combo(s)`;
 
         return `
-          <div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2.5 flex justify-between items-center gap-2">
+          <div class="bg-[#0d1424]/90 border border-slate-800/90 rounded-xl p-2.5 flex justify-between items-center gap-2.5">
+            <img src="${escHtml(img)}" onerror="this.onerror=null;this.src='${LOGO_FALLBACK}'" class="w-10 h-10 rounded-lg object-cover bg-white shrink-0 ring-1 ring-slate-700" />
             <div class="min-w-0 flex-1">
               <div class="font-bold text-sm text-white truncate">${escHtml(prod.nombre)}</div>
-              <div class="text-xs text-slate-400">${desc} · ${escHtml(c.agregado_por)} ${escHtml(c.hora)}</div>
+              <div class="text-xs text-slate-400 truncate">${desc} · ${escHtml(c.agregado_por)} ${escHtml(c.hora)}</div>
             </div>
-            <div class="flex items-center gap-2.5 shrink-0">
+            <div class="flex items-center gap-2 shrink-0">
               <div class="text-right">
-                <div class="font-bold text-amber-400 text-sm">$${calc.subtotalUsd.toFixed(2)}</div>
+                <div class="font-extrabold text-amber-400 text-sm">$${calc.subtotalUsd.toFixed(2)}</div>
                 <div class="text-xs text-slate-300 font-medium">${fmtBs(calc.subtotalBs)}</div>
               </div>
-              <button onclick="eliminarItemConsumo('${esc(c.id_producto)}', ${c.cantidad_unidades}, '${esc(prod.nombre)}')" title="Eliminar todo este producto" class="p-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/30 text-red-400 text-sm">🗑️</button>
+              <button onclick="eliminarItemConsumo('${esc(c.id_producto)}', ${c.cantidad_unidades}, '${esc(prod.nombre)}')" title="Eliminar todo este producto" class="p-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/30 border border-red-500/30 text-red-400 text-sm transition">🗑️</button>
             </div>
           </div>
         `;
@@ -999,7 +1226,6 @@
         const ventas = data.ventas || [];
         document.getElementById('histResumen').textContent = `${data.cantidad} venta(s) · Total del día: $${Number(data.total_usd || 0).toFixed(2)} (${fmtBs(data.total_bs)})`;
 
-        // Agrupar totales por mesa
         const porMesa = {};
         ventas.forEach(v => {
           const nombre = v.mesa || 'Sin mesa';
@@ -1012,25 +1238,25 @@
 
         document.getElementById('resumenPorMesa').innerHTML = listaPorMesa.length
           ? listaPorMesa.map(m => `
-              <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3">
+              <div class="bg-[#0d1424]/90 border border-amber-400/30 rounded-2xl p-3">
                 <div class="font-bold text-white text-sm truncate">🪑 ${escHtml(m.mesa)}</div>
                 <div class="text-[11px] text-slate-400 mb-1">${m.cantidad} cuenta(s) cobrada(s)</div>
-                <div class="font-bold text-amber-400 text-base">$${m.usd.toFixed(2)}</div>
-                <div class="text-xs text-slate-300">${fmtBs(m.bs)}</div>
+                <div class="font-extrabold text-amber-400 text-lg">$${m.usd.toFixed(2)}</div>
+                <div class="text-xs text-slate-300 font-medium">${fmtBs(m.bs)}</div>
               </div>
             `).join('')
           : '<p class="text-slate-500 text-xs col-span-full">Aún no hay ventas por mesa hoy.</p>';
 
         document.getElementById('listaHistorial').innerHTML = ventas.map(v => `
-          <div class="bg-slate-800/70 border border-slate-700 p-3 rounded-xl flex justify-between gap-3">
+          <div class="bg-[#0d1424]/90 border border-slate-800/90 p-3.5 rounded-2xl flex justify-between gap-3">
             <div>
               <div class="font-bold text-white text-sm">${escHtml(v.mesa)} ${v.alias_cliente ? '· ' + escHtml(v.alias_cliente) : ''}</div>
               <div class="text-xs text-slate-400">${escHtml(v.fecha_hora)} · Cobró: ${escHtml(v.cobrado_por)}</div>
               <div class="text-xs text-slate-300 mt-1">${escHtml(v.detalle)}</div>
             </div>
             <div class="text-right shrink-0">
-              <div class="font-bold text-amber-400">$${Number(v.total_usd || 0).toFixed(2)}</div>
-              <div class="text-xs text-slate-300">${fmtBs(v.total_bs)}</div>
+              <div class="font-extrabold text-amber-400 text-base">$${Number(v.total_usd || 0).toFixed(2)}</div>
+              <div class="text-xs text-slate-300 font-medium">${fmtBs(v.total_bs)}</div>
             </div>
           </div>
         `).join('') || '<p class="text-slate-500 text-center py-6">No hay ventas registradas hoy.</p>';
@@ -1101,21 +1327,21 @@
 
   function renderAdminListas() {
     document.getElementById('listaProdAdmin').innerHTML = state.productosAdmin.map(p => `
-      <div class="py-2 flex justify-between items-center text-sm">
-        <div>
-          <strong class="text-white">${escHtml(p.nombre)}</strong> <span class="text-amber-400">$${Number(p.precio_usd || 0).toFixed(2)}</span>
+      <div class="py-2.5 flex justify-between items-center text-sm gap-2">
+        <div class="min-w-0">
+          <strong class="text-white">${escHtml(p.nombre)}</strong> <span class="text-amber-400 font-bold">$${Number(p.precio_usd || 0).toFixed(2)}</span>
           <span class="text-xs text-slate-400 ml-2">${escHtml(p.categoria)} · ${p.activo === 'SI' ? 'Activo' : 'Inactivo'} ${p.codigo_barra ? '· Cod: ' + escHtml(p.codigo_barra) : ''}</span>
         </div>
-        <button onclick="editarProdPorId('${esc(p.id_producto)}')" class="text-xs bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded">Editar</button>
+        <button onclick="editarProdPorId('${esc(p.id_producto)}')" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1 rounded-lg font-semibold shrink-0">Editar</button>
       </div>
     `).join('');
 
     document.getElementById('listaMesasAdmin').innerHTML = state.mesas.map(m => `
-      <div class="bg-slate-900 border border-slate-700 p-2.5 rounded-lg flex justify-between items-center text-sm">
-        <span><strong>${escHtml(m.nombre_mesa)}</strong> <small class="text-slate-500">(ID: ${escHtml(m.id_mesa)})</small></span>
-        <div class="flex gap-1.5">
-          <button onclick="renombrarMesa('${esc(m.id_mesa)}', '${esc(m.nombre_mesa)}')" class="text-xs bg-slate-700 px-2 py-1 rounded">Renombrar</button>
-          <button onclick="eliminarMesa('${esc(m.id_mesa)}', '${esc(m.nombre_mesa)}')" class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Eliminar</button>
+      <div class="bg-[#090d16]/90 border border-slate-800 p-3 rounded-xl flex justify-between items-center text-sm gap-2">
+        <span class="truncate"><strong>${escHtml(m.nombre_mesa)}</strong> <small class="text-slate-500">(ID: ${escHtml(m.id_mesa)})</small></span>
+        <div class="flex gap-1.5 shrink-0">
+          <button onclick="renombrarMesa('${esc(m.id_mesa)}', '${esc(m.nombre_mesa)}')" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2.5 py-1 rounded-lg font-semibold">Renombrar</button>
+          <button onclick="eliminarMesa('${esc(m.id_mesa)}', '${esc(m.nombre_mesa)}')" class="text-xs bg-red-500/15 hover:bg-red-500/25 border border-red-500/35 text-red-400 px-2.5 py-1 rounded-lg font-semibold">Eliminar</button>
         </div>
       </div>
     `).join('');
