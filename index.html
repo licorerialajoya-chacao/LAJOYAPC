@@ -81,6 +81,23 @@
       border-color: #fbbf24;
       box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.22), inset 0 2px 4px rgba(0, 0, 0, 0.35);
     }
+    .search-header-input {
+      background: #1e293b;
+      border: 2px solid rgba(251, 191, 36, 0.80);
+      color: #ffffff;
+      box-shadow: 0 0 16px -4px rgba(251, 191, 36, 0.42), inset 0 1px 2px rgba(0, 0, 0, 0.3);
+      transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+    }
+    .search-header-input:hover {
+      background: #243247;
+      border-color: #fcd34d;
+    }
+    .search-header-input:focus {
+      outline: none;
+      background: #273549;
+      border-color: #fde047;
+      box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.28), 0 0 20px -2px rgba(251, 191, 36, 0.55);
+    }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #111827; }
     ::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }
@@ -128,15 +145,16 @@
         </div>
       </div>
 
-      <!-- BUSCADOR RÁPIDO DE MESAS -->
-      <div id="boxBuscadorMesa" class="relative flex-1 min-w-[200px] max-w-xs">
+      <!-- BUSCADOR RÁPIDO DE MESAS (ALTO CONTRASTE) -->
+      <div id="boxBuscadorMesa" class="relative flex-1 min-w-[220px] max-w-sm">
+        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-amber-300 text-base">🔍</span>
         <input id="inputBuscadorMesa" type="text" autocomplete="off"
-          placeholder="🔍 Buscar mesa o cliente..."
+          placeholder="Buscar mesa o cliente..."
           onfocus="renderBuscadorMesas()"
           oninput="renderBuscadorMesas()"
           onkeydown="manejarEnterBuscadorMesa(event)"
-          class="input-obsidian w-full rounded-xl px-3.5 py-2 text-sm placeholder-slate-400" />
-        <div id="dropdownMesas" class="hidden absolute left-0 right-0 mt-1.5 glass-panel rounded-2xl shadow-2xl max-h-72 overflow-y-auto z-50 divide-y divide-slate-700/80 border border-slate-600/80"></div>
+          class="search-header-input w-full rounded-xl pl-9 pr-3.5 py-2 text-sm font-medium placeholder-slate-200" />
+        <div id="dropdownMesas" class="hidden absolute left-0 right-0 mt-1.5 bg-[#162033] rounded-2xl shadow-2xl max-h-72 overflow-y-auto z-50 divide-y divide-slate-700/80 border-2 border-amber-400/60"></div>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
@@ -697,7 +715,7 @@
         const emo = tipo === 'Barra' ? '🍸' : (tipo === 'Clientes' ? '👤' : '🪑');
         return `
           <button type="button" onclick="seleccionarMesaRapida('${esc(m.id_mesa)}')"
-            class="w-full text-left px-3.5 py-2.5 hover:bg-slate-700/70 flex items-center justify-between gap-2 transition">
+            class="w-full text-left px-3.5 py-2.5 hover:bg-slate-700/80 flex items-center justify-between gap-2 transition">
             <div class="min-w-0">
               <div class="font-bold text-sm text-white truncate flex items-center gap-1.5">
                 <span>${emo} ${escHtml(m.nombre_mesa)}</span>
