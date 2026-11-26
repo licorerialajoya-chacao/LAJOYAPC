@@ -921,13 +921,13 @@
       const precioBs = Math.round(pUsd * tasa * 100) / 100;
       const img = p.imagen_url || LOGO_FALLBACK;
       return `
-        <div class="bg-[#162033]/95 border ${cant > 0 ? 'border-amber-400/80 shadow-[0_0_16px_-6px_rgba(245,158,11,0.45)]' : 'border-slate-700/80 hover:border-slate-500'} rounded-xl p-2.5 flex flex-col justify-between gap-2 transition">
-          <div class="flex gap-2.5 items-center">
-            <img src="${escHtml(img)}" onerror="this.onerror=null;this.src='${LOGO_FALLBACK}'" class="w-11 h-11 rounded-lg object-cover bg-white shrink-0 ring-1 ring-slate-600" />
+        <div class="bg-[#162033]/95 border ${cant > 0 ? 'border-amber-400/80 shadow-[0_0_16px_-6px_rgba(245,158,11,0.45)]' : 'border-slate-700/80 hover:border-slate-500'} rounded-xl p-2.5 flex flex-col justify-between gap-2.5 transition">
+          <div class="flex gap-3 items-center">
+            <img src="${escHtml(img)}" onerror="this.onerror=null;this.src='${LOGO_FALLBACK}'" class="w-20 h-20 rounded-xl object-contain p-1 bg-white shrink-0 ring-1 ring-slate-500/80 shadow-md" />
             <div class="min-w-0 flex-1">
-              <div class="font-bold text-sm text-white truncate">${escHtml(p.nombre)}</div>
-              <div class="text-xs"><span class="text-amber-400 font-extrabold">$${pUsd.toFixed(2)}</span> <span class="text-slate-200">· ${fmtBs(precioBs)}</span></div>
-              ${p.unidades_combo > 1 && p.precio_combo_usd > 0 ? `<div class="text-[11px] text-sky-300 font-semibold">Combo x${p.unidades_combo}: $${Number(p.precio_combo_usd).toFixed(2)}</div>` : ''}
+              <div class="font-bold text-sm text-white leading-snug line-clamp-2">${escHtml(p.nombre)}</div>
+              <div class="text-xs mt-1"><span class="text-amber-400 font-extrabold text-sm">$${pUsd.toFixed(2)}</span> <span class="text-slate-200">· ${fmtBs(precioBs)}</span></div>
+              ${p.unidades_combo > 1 && p.precio_combo_usd > 0 ? `<div class="text-[11px] text-sky-300 font-semibold mt-0.5">Combo x${p.unidades_combo}: $${Number(p.precio_combo_usd).toFixed(2)}</div>` : ''}
             </div>
           </div>
           <div class="flex items-center justify-end gap-1.5">
@@ -1062,7 +1062,7 @@
 
         return `
           <div class="bg-[#162033]/95 border border-slate-700/80 rounded-xl p-2.5 flex justify-between items-center gap-2.5">
-            <img src="${escHtml(img)}" onerror="this.onerror=null;this.src='${LOGO_FALLBACK}'" class="w-10 h-10 rounded-lg object-cover bg-white shrink-0 ring-1 ring-slate-600" />
+            <img src="${escHtml(img)}" onerror="this.onerror=null;this.src='${LOGO_FALLBACK}'" class="w-10 h-10 rounded-lg object-contain p-0.5 bg-white shrink-0 ring-1 ring-slate-600" />
             <div class="min-w-0 flex-1">
               <div class="font-bold text-sm text-white truncate">${escHtml(prod.nombre)}</div>
               <div class="text-xs text-slate-300 truncate">${desc} · ${escHtml(c.agregado_por)} ${escHtml(c.hora)}</div>
