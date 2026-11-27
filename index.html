@@ -458,6 +458,37 @@
     return 'Clientes';
   }
 
+  // Normalización segura de códigos de barras (ignora espacios, guiones, .0 y ceros iniciales)
+  function normalizarCodigo(str) {
+    return String(str || '')
+      .trim()
+      .replace(/\.0+$/, '')
+      .replace(/[^0-9a-zA-Z]/g, '')
+      .toLowerCase();
+  }
+
+  function buscarProductoPorCodigo(codigoRaw) {
+    const norm = normalizarCodigo(codigoRaw);
+    if (!norm) return null;
+    const sinCeros = norm.replace(/^0+/, '');
+
+    const fuentes = [state.productos, state.productosAdmin];
+    for (const lista of fuentes) {
+      if (!lista || !lista.length) continue;
+      let found = lista.find(p => p.codigo_barra && normalizarCodigo(p.codigo_barra) === norm);
+      if (found) return found;
+      if (sinCeros.length >= 4) {
+        found = lista.find(p => {
+          if (!p.codigo_barra) return false;
+          const pSinCeros = normalizarCodigo(p.codigo_barra).replace(/^0+/, '');
+          return pSinCeros === sinCeros;
+        });
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
   // ÍCONOS 3D VOLUMÉTRICOS CON PEDESTAL LUMINOSO
   function getIcono3D(nombreMesa, isOcupada) {
     const tipo = clasificarMesa(nombreMesa);
@@ -910,7 +941,7 @@
 
     const filtrados = state.productos.filter(p => {
       const okCat = state.categoriaActiva === 'Todos' || (p.categoria || 'Otros') === state.categoriaActiva;
-      const okQ = !q || p.nombre.toLowerCase().includes(q) || (p.codigo_barra && String(p.codigo_barra).toLowerCase().includes(q));
+      const okQ = !q || p.nombre.toLowerCase().includes(q) || (p.codigo_barra && normalizarCodigo(p.codigo_barra).includes(normalizarCodigo(q)));
       return okCat && okQ;
     });
 
@@ -977,8 +1008,7 @@
     const codigo = String(codigoRaw || '').trim();
     if (!codigo) return;
 
-    const listaBase = state.productosAdmin.length ? state.productosAdmin : state.productos;
-    const prod = listaBase.find(p => p.codigo_barra && String(p.codigo_barra).trim().toLowerCase() === codigo.toLowerCase());
+    const prod = buscarProductoPorCodigo(codigo);
 
     if (prod) {
       if (state.mesaActivaId) {
@@ -1028,7 +1058,7 @@
     const q = e.target.value.trim();
     if (!q) return;
 
-    const prod = state.productos.find(p => p.codigo_barra && String(p.codigo_barra).trim().toLowerCase() === q.toLowerCase());
+    const prod = buscarProductoPorCodigo(q);
     if (prod) {
       e.target.value = '';
       renderCatalogo();
@@ -1628,7 +1658,7 @@
     if (e.key.length === 1) {
       _scanBuffer += e.key;
       clearTimeout(_scanTimer);
-      _scanTimer = setTimeout(() => { _scanBuffer = ''; }, 140);
+      _scanTimer = setTimeout(() => { _scanBuffer = ''; }, 350);
     }
   });
 
