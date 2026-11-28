@@ -208,7 +208,7 @@
           <button onclick="volverAMesas()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3.5 py-2 rounded-xl text-sm font-semibold transition">← Volver</button>
           <div>
             <div class="flex items-center gap-2">
-              <h2 id="detNombreMesa" class="text-xl font-extrabold text-white"></h2>
+              <h2 id="detNombreMesa" class="text-2xl font-black uppercase tracking-wide text-white"></h2>
               <span id="detEstadoMesa" class="text-xs px-2.5 py-0.5 rounded-full font-bold"></span>
             </div>
             <p id="detInfoUlt" class="text-xs text-slate-300 mt-0.5"></p>
@@ -266,7 +266,7 @@
       <input id="nmAlias" type="text" placeholder="Apodo cliente (opcional)" class="input-obsidian w-full rounded-xl px-3.5 py-2.5 text-sm mb-5" />
       <div class="flex justify-end gap-2">
         <button onclick="cerrarModal('modalNuevaMesa')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-sm font-semibold">Cancelar</button>
-        <button onclick="crearNuevaMesa()" class="btn-gold px-5 py-2 rounded-xl font-extrabold text-sm">Crear</button>
+        <button id="btnCrearMesa" onclick="crearNuevaMesa()" class="btn-gold px-5 py-2 rounded-xl font-extrabold text-sm">Crear</button>
       </div>
     </div>
   </div>
@@ -274,7 +274,7 @@
   <!-- MODAL QR HD -->
   <div id="modalQR" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="glass-panel rounded-3xl p-6 w-full max-w-sm text-center border border-amber-400/35">
-      <h3 id="qrTitulo" class="text-xl font-extrabold text-amber-400 mb-1"></h3>
+      <h3 id="qrTitulo" class="text-xl font-extrabold uppercase text-amber-400 mb-1"></h3>
       <p class="text-xs text-slate-300 mb-4">Escanea para ver tu cuenta en vivo</p>
       <div class="bg-white p-3.5 rounded-2xl inline-block mb-4 shadow-xl ring-2 ring-amber-400/50">
         <img id="qrImg" class="w-56 h-56 object-contain" crossorigin="anonymous" />
@@ -377,6 +377,7 @@
               <option value="SI">Activo: SI</option>
               <option value="NO">Activo: NO</option>
             </select>
+            <input id="pCombosExtra" placeholder="Combos extra (ej: 6:8, 24:22)" title="Opcional: agrega más combos en formato unidades:precio separados por coma" class="input-obsidian rounded-xl px-3 py-2 text-sm col-span-2 md:col-span-4" />
             <input id="pImagenUrl" placeholder="URL imagen (o sube archivo ->)" class="input-obsidian rounded-xl px-3 py-2 text-sm col-span-2" />
             <input id="pFile" type="file" accept="image/*" onchange="subirFotoDrive(event)" class="text-xs text-slate-200 col-span-2 self-center" />
           </div>
@@ -430,8 +431,13 @@
     categoriaActiva: 'Todos',
     filtroTipoMesa: 'Todas',
     editandoCantidad: false,
-    enviosPendientes: 0
+    creandoMesa: false,
+    menuComboAbierto: null
   };
+
+  // Cola secuencial anti-duplicados para envíos al servidor
+  let _colaAjustes = [];
+  let _procesandoCola = false;
 
   function toast(msg) {
     const el = document.getElementById('toast');
@@ -500,6 +506,82 @@
       }
     }
     return null;
+  }
+
+  // Combos: principal + combos_extra (ej: "6:8, 24:22")
+  function obtenerCombosExtraLista(prod) {
+    const uPrinc = parseInt(prod.unidades_combo, 10) || 0;
+    const rawExtra = String(prod.combos_extra || '').trim();
+    if (!rawExtra) return [];
+    const mapa = {};
+    rawExtra.split(/[,;\n]+/).forEach(par => {
+      const partes = par.split(':');
+      if (partes.length === 2) {
+        const u = parseInt(partes[0].trim(), 10) || 0;
+        const p = parseFloat(String(partes[1]).trim().replace(',', '.')) || 0;
+        if (u > 1 && p > 0 && u !== uPrinc) {
+          mapa[u] = p;
+        }
+      }
+    });
+    return Object.keys(mapa)
+      .map(u => ({ unidades: parseInt(u, 10), precio: mapa[u] }))
+      .sort((a, b) => a.unidades - b.unidades);
+  }
+
+  function obtenerCombosProducto(prod) {
+    const mapa = {};
+    const uPrinc = parseInt(prod.unidades_combo, 10) || 0;
+    const pPrinc = Number(prod.precio_combo_usd || 0);
+    if (uPrinc > 1 && pPrinc > 0) {
+      mapa[uPrinc] = pPrinc;
+    }
+    const rawExtra = String(prod.combos_extra || '').trim();
+    if (rawExtra) {
+      rawExtra.split(/[,;\n]+/).forEach(par => {
+        const partes = par.split(':');
+        if (partes.length === 2) {
+          const u = parseInt(partes[0].trim(), 10) || 0;
+          const p = parseFloat(String(partes[1]).trim().replace(',', '.')) || 0;
+          if (u > 1 && p > 0) {
+            mapa[u] = p;
+          }
+        }
+      });
+    }
+    return Object.keys(mapa)
+      .map(u => ({ unidades: parseInt(u, 10), precio: mapa[u] }))
+      .sort((a, b) => b.unidades - a.unidades);
+  }
+
+  function calcularLinea(prod, cant) {
+    const combosDef = obtenerCombosProducto(prod);
+    let restante = parseInt(cant, 10) || 0;
+    let totalCombos = 0;
+    let subtotalUsd = 0;
+    const partesDetalle = [];
+
+    for (let i = 0; i < combosDef.length; i++) {
+      const c = combosDef[i];
+      if (restante >= c.unidades) {
+        const n = Math.floor(restante / c.unidades);
+        restante = restante % c.unidades;
+        totalCombos += n;
+        subtotalUsd += n * c.precio;
+        partesDetalle.push(`${n} combo(s) x${c.unidades}`);
+      }
+    }
+
+    const sueltas = restante;
+    if (sueltas > 0) {
+      subtotalUsd += sueltas * Number(prod.precio_usd || 0);
+      partesDetalle.push(`${sueltas} ${totalCombos > 0 ? 'suelta(s)' : 'und'}`);
+    }
+
+    subtotalUsd = Math.round(subtotalUsd * 100) / 100;
+    const subtotalBs = Math.round(subtotalUsd * getTasaActiva() * 100) / 100;
+    const textoDetalle = partesDetalle.length ? partesDetalle.join(' + ') : '0 und';
+    return { combos: totalCombos, sueltas, subtotalUsd, subtotalBs, textoDetalle };
   }
 
   // ÍCONOS 3D VOLUMÉTRICOS CON PEDESTAL LUMINOSO
@@ -577,25 +659,6 @@
     `;
   }
 
-  function calcularLinea(prod, cant) {
-    const uCombo = Number(prod.unidades_combo || 0);
-    const pUsd = Number(prod.precio_usd || 0);
-    const pComboUsd = Number(prod.precio_combo_usd || 0);
-    let combos = 0, sueltas = cant, subtotalUsd = 0;
-
-    if (uCombo > 1 && pComboUsd > 0) {
-      combos = Math.floor(cant / uCombo);
-      sueltas = cant % uCombo;
-      subtotalUsd = (combos * pComboUsd) + (sueltas * pUsd);
-    } else {
-      subtotalUsd = cant * pUsd;
-    }
-
-    subtotalUsd = Math.round(subtotalUsd * 100) / 100;
-    const subtotalBs = Math.round(subtotalUsd * getTasaActiva() * 100) / 100;
-    return { combos, sueltas, subtotalUsd, subtotalBs };
-  }
-
   async function apiGet(action) {
     const res = await fetch(`${API_URL}?action=${action}&t=${Date.now()}`, { cache: 'no-store' });
     return await res.json();
@@ -669,13 +732,13 @@
     }
   }
 
-  async function syncVivo() {
-    if (state.editandoCantidad || state.enviosPendientes > 0) return;
+  async function syncVivo(forzar) {
+    if (!forzar && (state.editandoCantidad || _procesandoCola || _colaAjustes.length > 0)) return;
     const dot = document.getElementById('syncDot');
     if (dot) dot.classList.replace('bg-emerald-400', 'bg-amber-400');
     try {
       const data = await apiGet('sync');
-      if (data.ok && !state.editandoCantidad && state.enviosPendientes === 0) {
+      if (data.ok && (forzar || (!state.editandoCantidad && !_procesandoCola && _colaAjustes.length === 0))) {
         if (data.config) state.config = data.config;
         if (data.productos) state.productos = data.productos;
         state.mesas = data.mesas || [];
@@ -761,7 +824,7 @@
           <button type="button" onclick="seleccionarMesaRapida('${esc(m.id_mesa)}')"
             class="w-full text-left px-3.5 py-2.5 hover:bg-slate-700/80 flex items-center justify-between gap-2 transition">
             <div class="min-w-0">
-              <div class="font-bold text-sm text-white truncate flex items-center gap-1.5">
+              <div class="font-extrabold text-sm uppercase text-white truncate flex items-center gap-1.5">
                 <span>${emo} ${escHtml(m.nombre_mesa)}</span>
                 ${tieneNota ? '<span class="text-[10px] bg-yellow-400/25 text-yellow-200 border border-yellow-400/60 px-1.5 rounded">📝 Nota</span>' : ''}
               </div>
@@ -805,6 +868,10 @@
     const box = document.getElementById('boxBuscadorMesa');
     if (box && !box.contains(e.target)) {
       document.getElementById('dropdownMesas').classList.add('hidden');
+    }
+    if (state.menuComboAbierto) {
+      state.menuComboAbierto = null;
+      renderCatalogo();
     }
   });
 
@@ -863,9 +930,9 @@
         <div onclick="abrirMesa('${esc(m.id_mesa)}')" class="${cardClass} cursor-pointer rounded-2xl overflow-hidden transition-all duration-200 flex flex-col justify-between">
           <!-- ZONA SUPERIOR -->
           <div class="p-3 pb-1">
-            <div class="flex justify-between items-center gap-1.5 mb-1">
-              <h3 class="font-extrabold text-white text-sm leading-tight truncate">${escHtml(m.nombre_mesa)}</h3>
-              <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 border ${
+            <div class="flex justify-between items-start gap-1.5 mb-1">
+              <h3 class="font-black text-white text-lg sm:text-xl uppercase tracking-wide leading-tight truncate">${escHtml(m.nombre_mesa)}</h3>
+              <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 border mt-0.5 ${
                 isOcupada
                   ? 'bg-amber-400/20 border-amber-300/60 text-amber-200'
                   : 'bg-emerald-400/20 border-emerald-300/50 text-emerald-200'
@@ -904,6 +971,7 @@
 
   function abrirMesa(idMesa) {
     state.mesaActivaId = idMesa;
+    state.menuComboAbierto = null;
     document.getElementById('dropdownMesas').classList.add('hidden');
     document.getElementById('vistaMesas').classList.add('hidden');
     document.getElementById('vistaDetalleMesa').classList.remove('hidden');
@@ -919,6 +987,7 @@
   function volverAMesas() {
     state.mesaActivaId = null;
     state.editandoCantidad = false;
+    state.menuComboAbierto = null;
     document.getElementById('dropdownMesas').classList.add('hidden');
     document.getElementById('vistaDetalleMesa').classList.add('hidden');
     document.getElementById('vistaMesas').classList.remove('hidden');
@@ -947,6 +1016,18 @@
     renderConsumo();
   }
 
+  function toggleMenuCombos(e, idProd) {
+    e.stopPropagation();
+    state.menuComboAbierto = (state.menuComboAbierto === idProd) ? null : idProd;
+    renderCatalogo();
+  }
+
+  function seleccionarComboExtra(e, idProd, unidades) {
+    e.stopPropagation();
+    state.menuComboAbierto = null;
+    ajustarItem(idProd, unidades);
+  }
+
   function renderCatalogo() {
     const q = document.getElementById('buscadorProd').value.trim().toLowerCase();
     const cuentasMesa = state.cuentas.filter(c => c.id_mesa === state.mesaActivaId);
@@ -964,8 +1045,11 @@
       const pUsd = Number(p.precio_usd || 0);
       const precioBs = Math.round(pUsd * tasa * 100) / 100;
       const img = p.imagen_url || LOGO_FALLBACK;
+      const extras = obtenerCombosExtraLista(p);
+      const abierto = state.menuComboAbierto === p.id_producto;
+
       return `
-        <div class="bg-[#162033]/95 border ${cant > 0 ? 'border-amber-400/80 shadow-[0_0_16px_-6px_rgba(245,158,11,0.45)]' : 'border-slate-700/80 hover:border-slate-500'} rounded-xl p-2.5 flex flex-col justify-between gap-2.5 transition">
+        <div class="relative bg-[#162033]/95 border ${cant > 0 ? 'border-amber-400/80 shadow-[0_0_16px_-6px_rgba(245,158,11,0.45)]' : 'border-slate-700/80 hover:border-slate-500'} rounded-xl p-2.5 flex flex-col justify-between gap-2.5 transition">
           <div class="flex gap-3 items-center">
             <img src="${escHtml(img)}" onerror="this.onerror=null;this.src='${LOGO_FALLBACK}'" class="w-20 h-20 rounded-xl object-contain p-1 bg-white shrink-0 ring-1 ring-slate-500/80 shadow-md" />
             <div class="min-w-0 flex-1">
@@ -984,13 +1068,30 @@
               class="input-obsidian w-14 h-8 rounded-lg text-center font-bold text-sm" />
             <button onclick="ajustarItem('${esc(p.id_producto)}', 1)" class="btn-gold w-9 h-8 rounded-lg font-extrabold">+</button>
             ${p.unidades_combo > 1 ? `<button onclick="ajustarItem('${esc(p.id_producto)}', ${p.unidades_combo})" class="px-2 h-8 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/50 text-sky-200 text-xs font-bold">+${p.unidades_combo}</button>` : ''}
+            ${extras.length > 0 ? `
+              <div class="relative">
+                <button type="button" onclick="toggleMenuCombos(event, '${esc(p.id_producto)}')" title="Ver combos adicionales"
+                  class="px-2 h-8 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/50 text-amber-300 text-xs font-bold transition">+ más ▾</button>
+                ${abierto ? `
+                  <div onclick="event.stopPropagation()" class="absolute right-0 bottom-9 z-40 min-w-[145px] bg-[#0f172a] border-2 border-amber-400/70 rounded-xl shadow-2xl p-1.5 space-y-1">
+                    ${extras.map(ex => `
+                      <button type="button" onclick="seleccionarComboExtra(event, '${esc(p.id_producto)}', ${ex.unidades})"
+                        class="w-full text-left px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-amber-400/20 text-xs font-bold text-white flex justify-between items-center gap-2 transition">
+                        <span class="text-sky-300">+${ex.unidades} und</span>
+                        <span class="text-amber-300">$${ex.precio.toFixed(2)}</span>
+                      </button>
+                    `).join('')}
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
           </div>
         </div>
       `;
     }).join('');
   }
 
-  async function aplicarInputCantidad(inputEl, idProducto) {
+  function aplicarInputCantidad(inputEl, idProducto) {
     state.editandoCantidad = false;
     const cantActual = parseInt(inputEl.dataset.cantActual, 10) || 0;
     const raw = inputEl.value.trim();
@@ -1005,7 +1106,7 @@
     }
     const delta = nueva - cantActual;
     if (delta === 0) return;
-    await ajustarItem(idProducto, delta);
+    ajustarItem(idProducto, delta);
   }
 
   function activarEscaneoCodigoForm() {
@@ -1095,13 +1196,10 @@
       cont.innerHTML = '<p class="text-slate-400 text-sm text-center py-8">No hay consumos en esta mesa.</p>';
     } else {
       cont.innerHTML = cuentasMesa.map(c => {
-        const prod = state.productos.find(p => p.id_producto === c.id_producto) || { nombre: c.id_producto, precio_usd: 0, unidades_combo: 0, precio_combo_usd: 0, imagen_url: '' };
+        const prod = state.productos.find(p => p.id_producto === c.id_producto) || { nombre: c.id_producto, precio_usd: 0, unidades_combo: 0, precio_combo_usd: 0, combos_extra: '', imagen_url: '' };
         const calc = calcularLinea(prod, c.cantidad_unidades);
         totalUsd += calc.subtotalUsd;
         const img = prod.imagen_url || LOGO_FALLBACK;
-        let desc = `${c.cantidad_unidades} und`;
-        if (calc.combos > 0 && calc.sueltas > 0) desc = `${calc.combos} combo(s) + ${calc.sueltas} suelta(s)`;
-        else if (calc.combos > 0) desc = `${calc.combos} combo(s)`;
 
         return `
           <div class="bg-[#162033]/95 border border-slate-700/80 rounded-xl p-2.5 flex flex-col gap-2">
@@ -1109,7 +1207,7 @@
               <img src="${escHtml(img)}" onerror="this.onerror=null;this.src='${LOGO_FALLBACK}'" class="w-10 h-10 rounded-lg object-contain p-0.5 bg-white shrink-0 ring-1 ring-slate-600" />
               <div class="min-w-0 flex-1">
                 <div class="font-bold text-sm text-white truncate">${escHtml(prod.nombre)}</div>
-                <div class="text-xs text-slate-300 truncate">${desc} · ${escHtml(c.agregado_por)} ${escHtml(c.hora)}</div>
+                <div class="text-xs text-slate-300 truncate">${escHtml(calc.textoDetalle)} · ${escHtml(c.agregado_por)} ${escHtml(c.hora)}</div>
               </div>
               <div class="text-right shrink-0">
                 <div class="font-extrabold text-amber-400 text-sm">$${calc.subtotalUsd.toFixed(2)}</div>
@@ -1182,45 +1280,62 @@
     }
   }
 
-  async function ajustarItem(idProducto, delta) {
+  function ajustarItem(idProducto, delta) {
     const idMesa = state.mesaActivaId;
-    const prevMesas = JSON.parse(JSON.stringify(state.mesas));
-    const prevCuentas = JSON.parse(JSON.stringify(state.cuentas));
+    if (!idMesa || !idProducto || !delta) return;
     const hora = obtenerHoraActual();
 
-    // Actualización optimista inmediata para que se sienta al instante
+    // Actualización optimista inmediata
     aplicarCambioLocalItem(idMesa, idProducto, delta, state.trabajador, hora);
     renderTodo();
 
-    state.enviosPendientes++;
+    // Encola la orden para enviarla en orden estricto sin duplicados
+    _colaAjustes.push({
+      action: 'ajustar_item',
+      action_id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      id_mesa: idMesa,
+      id_producto: idProducto,
+      delta: delta,
+      trabajador: state.trabajador
+    });
+
+    procesarColaAjustes();
+  }
+
+  async function procesarColaAjustes() {
+    if (_procesandoCola) return;
+    _procesandoCola = true;
+    const dot = document.getElementById('syncDot');
+    if (dot) dot.classList.replace('bg-emerald-400', 'bg-amber-400');
+
     try {
-      const res = await apiPost({
-        action: 'ajustar_item',
-        action_id: Date.now() + '_' + Math.random(),
-        id_mesa: idMesa,
-        id_producto: idProducto,
-        delta: delta,
-        trabajador: state.trabajador
-      });
-      if (res.ok) {
-        if (state.enviosPendientes <= 1) {
-          state.mesas = res.mesas;
-          state.cuentas = res.cuentas;
-          renderTodo();
+      while (_colaAjustes.length > 0) {
+        const tarea = _colaAjustes.shift();
+        try {
+          const res = await apiPost(tarea);
+          if (res.ok) {
+            // Solo aplica el estado del servidor cuando ya terminó toda la cola
+            if (_colaAjustes.length === 0) {
+              state.mesas = res.mesas;
+              state.cuentas = res.cuentas;
+              renderTodo();
+            }
+          } else {
+            toast(res.error || 'Error al actualizar');
+            _colaAjustes = [];
+            await syncVivo(true);
+            break;
+          }
+        } catch (e) {
+          toast('Error de conexión al actualizar');
+          _colaAjustes = [];
+          await syncVivo(true);
+          break;
         }
-      } else {
-        state.mesas = prevMesas;
-        state.cuentas = prevCuentas;
-        renderTodo();
-        toast(res.error || 'Error al actualizar');
       }
-    } catch (e) {
-      state.mesas = prevMesas;
-      state.cuentas = prevCuentas;
-      renderTodo();
-      toast('Error de conexión al actualizar');
     } finally {
-      state.enviosPendientes = Math.max(0, state.enviosPendientes - 1);
+      _procesandoCola = false;
+      if (dot) dot.classList.replace('bg-amber-400', 'bg-emerald-400');
     }
   }
 
@@ -1278,6 +1393,7 @@
     try {
       const res = await apiPost({
         action: 'cobrar_mesa',
+        action_id: 'cob_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         id_mesa: state.mesaActivaId,
         trabajador: state.trabajador
       });
@@ -1301,11 +1417,18 @@
   }
 
   async function crearNuevaMesa() {
+    if (state.creandoMesa) return;
     const nombre = document.getElementById('nmNombre').value.trim();
     if (!nombre) return toast('Escribe un nombre');
+
+    state.creandoMesa = true;
+    const btn = document.getElementById('btnCrearMesa');
+    if (btn) { btn.disabled = true; btn.textContent = 'Creando...'; }
+
     try {
       const res = await apiPost({
         action: 'nueva_cuenta',
+        action_id: 'nm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         nombre_mesa: nombre,
         alias_cliente: document.getElementById('nmAlias').value.trim(),
         trabajador: state.trabajador
@@ -1315,9 +1438,14 @@
         cerrarModal('modalNuevaMesa');
         renderTodo();
         toast('Mesa creada');
+      } else {
+        toast(res.error || 'No se pudo crear la mesa');
       }
     } catch (e) {
       toast('Error creando mesa');
+    } finally {
+      state.creandoMesa = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Crear'; }
     }
   }
 
@@ -1390,7 +1518,7 @@
         document.getElementById('resumenPorMesa').innerHTML = listaPorMesa.length
           ? listaPorMesa.map(m => `
               <div class="bg-[#162033]/95 border border-amber-400/40 rounded-2xl p-3">
-                <div class="font-bold text-white text-sm truncate">🪑 ${escHtml(m.mesa)}</div>
+                <div class="font-extrabold uppercase text-white text-sm truncate">🪑 ${escHtml(m.mesa)}</div>
                 <div class="text-[11px] text-slate-300 mb-1">${m.cantidad} cuenta(s) cobrada(s)</div>
                 <div class="font-extrabold text-amber-400 text-lg">$${m.usd.toFixed(2)}</div>
                 <div class="text-xs text-slate-200 font-medium">${fmtBs(m.bs)}</div>
@@ -1401,7 +1529,7 @@
         document.getElementById('listaHistorial').innerHTML = ventas.map(v => `
           <div class="bg-[#162033]/95 border border-slate-700/80 p-3.5 rounded-2xl flex justify-between gap-3">
             <div>
-              <div class="font-bold text-white text-sm">${escHtml(v.mesa)} ${v.alias_cliente ? '· ' + escHtml(v.alias_cliente) : ''}</div>
+              <div class="font-extrabold uppercase text-white text-sm">${escHtml(v.mesa)} ${v.alias_cliente ? '· ' + escHtml(v.alias_cliente) : ''}</div>
               <div class="text-xs text-slate-300">${escHtml(v.fecha_hora)} · Cobró: ${escHtml(v.cobrado_por)}</div>
               <div class="text-xs text-slate-200 mt-1">${escHtml(v.detalle)}</div>
             </div>
@@ -1499,7 +1627,7 @@
       <div class="py-2.5 flex justify-between items-center text-sm gap-2">
         <div class="min-w-0">
           <strong class="text-white">${escHtml(p.nombre)}</strong> <span class="text-amber-400 font-bold">$${Number(p.precio_usd || 0).toFixed(2)}</span>
-          <span class="text-xs text-slate-300 ml-2">${escHtml(p.categoria)} · ${p.activo === 'SI' ? 'Activo' : 'Inactivo'} ${p.codigo_barra ? '· Cod: ' + escHtml(p.codigo_barra) : ''}</span>
+          <span class="text-xs text-slate-300 ml-2">${escHtml(p.categoria)} · ${p.activo === 'SI' ? 'Activo' : 'Inactivo'} ${p.codigo_barra ? '· Cod: ' + escHtml(p.codigo_barra) : ''} ${p.combos_extra ? '· Extra: ' + escHtml(p.combos_extra) : ''}</span>
         </div>
         <button onclick="editarProdPorId('${esc(p.id_producto)}')" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1 rounded-lg font-semibold shrink-0">Editar</button>
       </div>
@@ -1511,7 +1639,7 @@
 
     document.getElementById('listaMesasAdmin').innerHTML = state.mesas.map(m => `
       <div class="bg-[#0f172a]/95 border border-slate-700 p-3 rounded-xl flex justify-between items-center text-sm gap-2">
-        <span class="truncate"><strong>${escHtml(m.nombre_mesa)}</strong> <small class="text-slate-400">(ID: ${escHtml(m.id_mesa)})</small></span>
+        <span class="truncate"><strong class="uppercase">${escHtml(m.nombre_mesa)}</strong> <small class="text-slate-400">(ID: ${escHtml(m.id_mesa)})</small></span>
         <div class="flex gap-1.5 shrink-0">
           <button onclick="renombrarMesa('${esc(m.id_mesa)}', '${esc(m.nombre_mesa)}')" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1 rounded-lg font-semibold">Renombrar</button>
           <button onclick="eliminarMesa('${esc(m.id_mesa)}', '${esc(m.nombre_mesa)}')" class="text-xs bg-red-500/20 hover:bg-red-500/30 border border-red-400/45 text-red-300 px-2.5 py-1 rounded-lg font-semibold">Eliminar</button>
@@ -1532,13 +1660,14 @@
     document.getElementById('pPCombo').value = p.precio_combo_usd || '';
     document.getElementById('pCodigo').value = p.codigo_barra || '';
     document.getElementById('pActivo').value = p.activo || 'SI';
+    document.getElementById('pCombosExtra').value = p.combos_extra || '';
     document.getElementById('pImagenUrl').value = p.imagen_url || '';
     document.getElementById('boxFormProducto').scrollIntoView({ behavior: 'smooth' });
   }
 
   function limpiarFormProd() {
     document.getElementById('tituloFormProd').textContent = 'Agregar / Editar Producto';
-    ['pId','pNombre','pCategoria','pPrecio','pUCombo','pPCombo','pCodigo','pImagenUrl','pFile'].forEach(id => document.getElementById(id).value = '');
+    ['pId','pNombre','pCategoria','pPrecio','pUCombo','pPCombo','pCodigo','pCombosExtra','pImagenUrl','pFile'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('pActivo').value = 'SI';
   }
 
@@ -1588,6 +1717,7 @@
         precio_combo_usd: document.getElementById('pPCombo').value,
         codigo_barra: document.getElementById('pCodigo').value.trim(),
         activo: document.getElementById('pActivo').value,
+        combos_extra: document.getElementById('pCombosExtra').value.trim(),
         imagen_url: document.getElementById('pImagenUrl').value.trim()
       });
       if (res.ok) {
